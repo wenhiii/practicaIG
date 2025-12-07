@@ -11,6 +11,13 @@ void setLights (glm::mat4 P, glm::mat4 V);
 void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
+//Wall-E
+void drawWallE(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+void drawWallE_Body(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+void drawWallE_Head(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+void drawWallE_Arms(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+void drawWallE_Wheels(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+
 void funFramebufferSize(GLFWwindow* window, int width, int height);
 void funKey            (GLFWwindow* window, int key  , int scancode, int action, int mods);
 void funScroll         (GLFWwindow* window, double xoffset, double yoffset);
@@ -21,8 +28,19 @@ void funCursorPos      (GLFWwindow* window, double xpos, double ypos);
 
 // Modelos
    Model sphere;
-   Model plane;
-   Model cube;
+   // Wall-E
+   Model rightArm;
+   Model leftArm;
+   Model neck;
+   Model body;
+   Model eyes;
+   Model rightWheel;
+   Model leftWheel;
+   Model rightTire;
+   Model leftTire;
+   Model rightSupport;
+   Model leftSupport;
+   Model tubes;
 
 // Imagenes (texturas)
    Texture imgNoEmissive;
@@ -133,8 +151,19 @@ void configScene() {
 
  // Modelos
     sphere.initModel("resources/models/sphere.obj");
-    plane.initModel("resources/models/plane.obj");
-    cube.initModel("resources/models/cube.obj");
+    
+    rightArm.initModel("resources/models/brazoDerecho.obj");
+    leftArm.initModel("resources/models/brazoIzquierdo.obj");
+    neck.initModel("resources/models/cuello.obj");
+    body.initModel("resources/models/cuerpo.obj");
+    eyes.initModel("resources/models/ojos.obj");
+    rightWheel.initModel("resources/models/ruedaDerecha.obj");
+    leftWheel.initModel("resources/models/ruedaIzquierda.obj");
+    rightTire.initModel("resources/models/neumaticoDerecho.obj");
+    leftTire.initModel("resources/models/neumaticoIzquierdo.obj");
+    leftSupport.initModel("resources/models/soporteIzquierdo.obj");
+    rightSupport.initModel("resources/models/soporteDerecho.obj");
+    tubes.initModel("resources/models/tubos.obj");
 
  // Imagenes (texturas)
     imgNoEmissive.initTexture("resources/textures/imgNoEmissive.png");
@@ -281,20 +310,11 @@ void renderScene() {
     setLights(P,V);
 
  // Dibujamos la escena
-    glm::mat4 S = glm::scale    (I, glm::vec3(4.0, 1.0, 4.0));
-    glm::mat4 T = glm::translate(I, glm::vec3(0.0,-3.0, 0.0));
-    drawObjectTex(plane, texWall, P, V, T * S);
-
     glm::mat4 Ry = glm::rotate   (I, glm::radians(rotY), glm::vec3(0,1,0));
     glm::mat4 Rx = glm::rotate   (I, glm::radians(rotX), glm::vec3(1,0,0));
     glm::mat4 Tz = glm::translate(I, glm::vec3(0.0, 0.0, desZ));
-    drawObjectTex(cube, texCube, P, V, Tz * Rx * Ry);
-
-    glm::mat4 Rv = glm::rotate   (I, glm::radians(90.0f), glm::vec3(1,0,0));
-    glm::mat4 Tv = glm::translate(I, glm::vec3(0.0, 0.0, 3.0));
-    glDepthMask(GL_FALSE);
-        drawObjectTex(plane, texWindow, P, V, Tv * Rv);
-    glDepthMask(GL_TRUE);
+    glm::mat4 S2 = glm::scale    (I, glm::vec3(10.0, 10.0, 10.0));
+    drawWallE(P, V, Tz * Rx * Ry * S2);
 
 }
 
@@ -388,4 +408,35 @@ void funCursorPos(GLFWwindow* window, double xpos, double ypos) {
     if(alphaY<-limY) alphaY = -limY;
     if(alphaY> limY) alphaY =  limY;
 
+}
+
+void drawWallE(glm::mat4 P, glm::mat4 V, glm::mat4 M) {
+   drawWallE_Body(P, V, M);
+   drawWallE_Head(P, V, M);
+   drawWallE_Arms(P, V, M);
+   drawWallE_Wheels(P, V, M);
+}
+
+void drawWallE_Body(glm::mat4 P, glm::mat4 V, glm::mat4 M) {
+   drawObjectTex(body, texCube, P, V, M);
+   drawObjectTex(tubes, texGold, P, V, M);
+}
+
+void drawWallE_Head(glm::mat4 P, glm::mat4 V, glm::mat4 M) {
+   drawObjectTex(neck, texGold, P, V, M);
+   drawObjectTex(eyes, texWindow, P, V, M);
+}
+
+void drawWallE_Arms(glm::mat4 P, glm::mat4 V, glm::mat4 M) {
+   drawObjectTex(rightArm, texGold, P, V, M);
+   drawObjectTex(leftArm,  texGold, P, V, M);
+}
+
+void drawWallE_Wheels(glm::mat4 P, glm::mat4 V, glm::mat4 M) {
+   drawObjectTex(rightWheel, texGold, P, V, M);
+   drawObjectTex(rightTire,  texChess, P, V, M);
+   drawObjectTex(leftWheel, texGold, P, V, M);
+   drawObjectTex(leftTire,  texChess, P, V, M);
+   drawObjectTex(rightSupport, texRuby, P, V, M);
+   drawObjectTex(leftSupport,  texRuby, P, V, M);
 }
