@@ -15,6 +15,7 @@ void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M);
+void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawBrazoDer(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawBrazoIzq(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M);
@@ -35,17 +36,20 @@ Model cube;
 
 // M-O
 Model aspiradora;
-Model brazoDer;
-Model brazoIzq;
+Model brazoDerecho;
+Model brazoIzquierdo;
 Model cara;
 Model casco;
 Model cristalSirena;
 Model cubreRueda;
 Model cuello;
 Model cuerpo;
+Model ejeBrazoDerecho;
+Model ejeBrazoIzquierdo;
 Model mochila;
 Model rueda;
 Model tapaAspiradora;
+Model tapaCasco;
 Model tapaSirena;
 
 // Imagenes (texturas)
@@ -86,6 +90,7 @@ Textures texGuideLine;
 // FIN TEXTURA ESCENARIO
 
 //  Ancho del pasillo
+
 float anchoPasillo = 10.0f;
 
 // Viewport
@@ -96,6 +101,12 @@ int h = 500;
 float fovy = 60.0;
 float alphaX = 0.0;
 float alphaY = 0.0;
+
+// Movimiento M-O
+float anguloAspiradora = 0.0f;
+float anguloBrazos = 0.0f;
+
+bool animacionActiva = false;
 
 int main()
 {
@@ -171,17 +182,20 @@ void configScene()
 
    // M-O
    aspiradora.initModel("resources/models/aspiradora.obj");
-   brazoDer.initModel("resources/models/brazoDerecho.obj");
-   brazoIzq.initModel("resources/models/brazoIzquierdo.obj");
+   brazoDerecho.initModel("resources/models/brazoDerecho.obj");
+   brazoIzquierdo.initModel("resources/models/brazoIzquierdo.obj");
    cara.initModel("resources/models/cara.obj");
    casco.initModel("resources/models/casco.obj");
    cristalSirena.initModel("resources/models/cristalSirena.obj");
    cubreRueda.initModel("resources/models/cubreRueda.obj");
    cuello.initModel("resources/models/cuello.obj");
    cuerpo.initModel("resources/models/cuerpo.obj");
+   ejeBrazoDerecho.initModel("resources/models/ejeBrazoDerecho.obj");
+   ejeBrazoIzquierdo.initModel("resources/models/ejeBrazoIzquierdo.obj");
    mochila.initModel("resources/models/mochila.obj");
    rueda.initModel("resources/models/rueda.obj");
    tapaAspiradora.initModel("resources/models/tapaAspiradora.obj");
+   tapaCasco.initModel("resources/models/tapaCasco.obj");
    tapaSirena.initModel("resources/models/tapaSirena.obj");
 
    // Imagenes (texturas)
@@ -293,6 +307,12 @@ void configScene()
 
 void renderScene()
 {
+   if (animacionActiva)
+   {
+      anguloAspiradora += 1.0f;
+      if (anguloAspiradora > 360.0f)
+         anguloAspiradora -= 360.0f;
+   }
 
    // Borramos el buffer de color
    glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -436,7 +456,30 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
    switch (key)
    {
-   
+   case GLFW_KEY_G:
+      if (action == GLFW_PRESS)
+      {
+         animacionActiva = !animacionActiva;
+      }
+      break;
+
+   case GLFW_KEY_F:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+      {
+         anguloBrazos += 2.0f;
+
+         if (anguloBrazos > 5.0f) anguloBrazos = 5.0f;
+      }
+      break;
+
+   case GLFW_KEY_R:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+      {
+         anguloBrazos -= 2.0f;
+
+         if (anguloBrazos < -10.0f) anguloBrazos = -10.0f;
+      }
+      break;
    }
 }
 
@@ -463,14 +506,13 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
    if (alphaY > limY)
       alphaY = limY;
 }
+
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawCuerpo(P, V, M);
    drawCabeza(P, V, M);
-   drawBrazoDer(P, V, M);
-   drawBrazoIzq(P, V, M);
+   drawBrazos(P, V, M);
    drawRueda(P, V, M);
-   drawAspiradora(P, V, M);
 }
 
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -488,6 +530,8 @@ void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
    drawObjectTex(casco, texCube, P, V, M);
 
+   drawObjectTex(tapaCasco, texCube, P, V, M);
+
    drawObjectTex(cuello, texGold, P, V, M);
 
    drawSirena(P, V, M);
@@ -500,24 +544,70 @@ void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    drawObjectTex(tapaSirena, texCube, P, V, M);
 }
 
+void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M)
+{
+   drawBrazoDer(P, V, M);
+   drawBrazoIzq(P, V, M);
+
+   drawAspiradora(P, V, M);
+}
+
 void drawBrazoDer(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(brazoDer, texCube, P, V, M);
+
+   drawObjectTex(ejeBrazoDerecho, texGold, P, V, M);
+
+   glm::vec3 centro = glm::vec3(-21.74f, 45.53f, -8.83f);
+
+   glm::mat4 Torigen = glm::translate(I, -centro);
+   glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 Tvuelta = glm::translate(I, centro);
+
+   drawObjectTex(brazoDerecho, texGold, P, V, M * Tvuelta * R * Torigen);
 }
 
 void drawBrazoIzq(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(brazoIzq, texCube, P, V, M);
-}
+   glm::vec3 centro = glm::vec3(22.63f, 45.53f, -8.83f);
 
-void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
-{
-   drawObjectTex(rueda, texRuby, P, V, M);
+   glm::mat4 Torigen = glm::translate(I, -centro);
+   glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 Tvuelta = glm::translate(I, centro);
+
+   drawObjectTex(ejeBrazoIzquierdo, texGold, P, V, M);
+
+   drawObjectTex(brazoIzquierdo, texGold, P, V, M * Tvuelta * R * Torigen);
 }
 
 void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(aspiradora, texChess, P, V, M);
+   // Elevacion del brazo
+   glm::vec3 centroBrazo = glm::vec3(0.0f, 45.53f, -8.83f);
 
-   drawObjectTex(tapaAspiradora, texGold, P, V, M);
+   glm::mat4 Tida   = glm::translate(I, -centroBrazo);
+   glm::mat4 R   = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 Tvuelta  = glm::translate(I, centroBrazo);
+
+   glm::mat4 Melevacion = Tvuelta * R * Tida;
+
+   // Giro del rodillo
+   glm::vec3 centroAspiradora = glm::vec3(0.14f, 34.04f, 24.53f);
+
+   Tida = glm::translate(I, -centroAspiradora);
+   R = glm::rotate(I, glm::radians(anguloAspiradora), glm::vec3(1.0, 0.0, 0.0));
+   Tvuelta = glm::translate(I, centroAspiradora);
+
+   glm::mat4 Mgiro = Tvuelta * R * Tida;
+
+   // 1. Girar el rodillo (Mgiro)
+   // 2. Moverse con los brazos (Melevacion)
+   // 3. Posición del Robot (M) 
+
+   drawObjectTex(aspiradora, texChess, P, V, M * Melevacion * Mgiro);
+   drawObjectTex(tapaAspiradora, texGold, P, V,  M * Melevacion);
+}
+
+void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
+{
+   drawObjectTex(rueda, texGold, P, V, M);
 }
