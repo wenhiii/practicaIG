@@ -37,6 +37,12 @@ void funCursorPos      (GLFWwindow* window, double xpos, double ypos);
    Texture imgWallSpecular;
    Texture imgWallNormal;
 
+    // Imagenes TEXTURA ESCENARIO
+   Texture imgAxiomFloor;
+   Texture imgAxiomWall;
+   Texture imgGuideLine;
+    // FIN Imagenes TEXTURA ESCENARIO
+
 // Luces y materiales
    #define   NLD 1
    #define   NLP 1
@@ -56,16 +62,24 @@ void funCursorPos      (GLFWwindow* window, double xpos, double ypos);
    Textures  texWindow;
    Textures  texWall;
 
+    // TEXTURA ESCENARIO
+   Textures texAxiomFloor;
+   Textures texAxiomWall;
+   Textures texGuideLine;
+    // FIN TEXTURA ESCENARIO
+    //  Ancho del pasillo
+   float anchoPasillo = 10.0f;
+
 // Viewport
    int w = 500;
    int h = 500;
 
-// Animaciones
+// Animaciones (Teclado)
    float rotX = 0.0;
    float rotY = 0.0;
    float desZ = 0.0;
 
-// Movimiento de camara
+// Movimiento de camara (Ratón)
    float fovy   = 60.0;
    float alphaX =  0.0;
    float alphaY =  0.0;
@@ -149,8 +163,13 @@ void configScene() {
     imgWallSpecular.initTexture("resources/textures/imgWallSpecular.png");
     imgWallNormal.initTexture("resources/textures/imgWallNormal.png");
 
+    // [NUEVO] Cargamos texturas para el escenario (reutilizamos las existentes si no tienes nuevas)
+    imgAxiomFloor.initTexture("resources/textures/texturaXD.jpg!d");
+    imgAxiomWall.initTexture("resources/textures/paredXD.jpg");
+    imgGuideLine.initTexture("resources/textures/XD.jpg");
+
  // Luz ambiental global
-    lightG.ambient = glm::vec3(0.5, 0.5, 0.5);
+    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
 
  // Luces direccionales
     lightD[0].direction = glm::vec3(-1.0, 0.0, 0.0);
@@ -158,14 +177,14 @@ void configScene() {
     lightD[0].diffuse   = glm::vec3( 0.7, 0.7, 0.7);
     lightD[0].specular  = glm::vec3( 0.7, 0.7, 0.7);
 
- // Luces posicionales
-    lightP[0].position    = glm::vec3(0.0, 3.0, 3.0);
+ // Luces posicionales (Luz cenital del pasillo)
+    lightP[0].position    = glm::vec3(0.0, 4.0, 0.0);
     lightP[0].ambient     = glm::vec3(0.2, 0.2, 0.2);
-    lightP[0].diffuse     = glm::vec3(0.9, 0.9, 0.9);
-    lightP[0].specular    = glm::vec3(0.9, 0.9, 0.9);
+    lightP[0].diffuse     = glm::vec3(0.9, 0.95, 1.0);
+    lightP[0].specular    = glm::vec3(1.0, 1.0, 1.0);
     lightP[0].c0          = 1.00;
-    lightP[0].c1          = 0.22;
-    lightP[0].c2          = 0.20;
+    lightP[0].c1          = 0.09;
+    lightP[0].c2          = 0.032;
 
  // Luces focales
     lightF[0].position    = glm::vec3(-2.0,  2.0,  5.0);
@@ -189,7 +208,7 @@ void configScene() {
     lightF[1].c1          = 0.090;
     lightF[1].c2          = 0.032;
 
- // Materiales
+ // Materiales existentes
     mluz.ambient   = glm::vec4(0.0, 0.0, 0.0, 1.0);
     mluz.diffuse   = glm::vec4(0.0, 0.0, 0.0, 1.0);
     mluz.specular  = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -250,6 +269,26 @@ void configScene() {
     texWall.normal     = imgWallNormal.getTexture();
     texWall.shininess  = 51.2;
 
+    // 1. Suelo
+    texAxiomFloor.diffuse   = imgAxiomFloor.getTexture();
+    texAxiomFloor.specular  = imgAxiomFloor.getTexture();
+    texAxiomFloor.emissive  = imgNoEmissive.getTexture();
+    texAxiomFloor.normal    = 0;
+    texAxiomFloor.shininess = 100.0;
+
+    // 2. Paredes
+    texAxiomWall.diffuse    = imgAxiomWall.getTexture();
+    texAxiomWall.specular   = imgAxiomWall.getTexture();
+    texAxiomWall.emissive   = imgNoEmissive.getTexture();
+    texAxiomWall.normal     = imgWallNormal.getTexture();
+    texAxiomWall.shininess  = 30.0;
+
+    // 3. Luces
+    texGuideLine.diffuse    = imgGuideLine.getTexture();
+    texGuideLine.specular   = imgGuideLine.getTexture();
+    texGuideLine.emissive   = imgGuideLine.getTexture(); // Brilla
+    texGuideLine.normal     = 0;
+    texGuideLine.shininess  = 10.0;
 }
 
 void renderScene() {
@@ -263,7 +302,7 @@ void renderScene() {
 
  // Matriz P
     float nplane =  0.1;
-    float fplane = 25.0;
+    float fplane = 50.0;
     float aspect = (float)w/(float)h;
     glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, nplane, fplane);
 
@@ -280,21 +319,57 @@ void renderScene() {
  // Fijamos las luces
     setLights(P,V);
 
- // Dibujamos la escena
-    glm::mat4 S = glm::scale    (I, glm::vec3(4.0, 1.0, 4.0));
-    glm::mat4 T = glm::translate(I, glm::vec3(0.0,-3.0, 0.0));
-    drawObjectTex(plane, texWall, P, V, T * S);
+ // --------------------------------------------------------------------------
+ // EL PASILLO
+ // --------------------------------------------------------------------------
 
-    glm::mat4 Ry = glm::rotate   (I, glm::radians(rotY), glm::vec3(0,1,0));
-    glm::mat4 Rx = glm::rotate   (I, glm::radians(rotX), glm::vec3(1,0,0));
-    glm::mat4 Tz = glm::translate(I, glm::vec3(0.0, 0.0, desZ));
-    drawObjectTex(cube, texCube, P, V, Tz * Rx * Ry);
+    // 1. EL SUELO
+    glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(0.0, -2.0, 0.0))
+                          * glm::scale(I, glm::vec3(8.0, 1.0, 40.0));
+    drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
 
-    glm::mat4 Rv = glm::rotate   (I, glm::radians(90.0f), glm::vec3(1,0,0));
-    glm::mat4 Tv = glm::translate(I, glm::vec3(0.0, 0.0, 3.0));
-    glDepthMask(GL_FALSE);
-        drawObjectTex(plane, texWindow, P, V, Tv * Rv);
-    glDepthMask(GL_TRUE);
+    // 2. LÍNEA DE GUÍA
+
+    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, -1.98, 0.0))
+                          * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
+    drawObjectTex(plane, texGuideLine, P, V, MatrixLinea);
+
+
+    // 3. PAREDES MODULARES (Bucle)
+    for(int i = -3; i <=3 ; i++) {
+        float zPos = i * 5.0f;
+
+        // Pared Izquierda
+        glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, 1.0, zPos))
+                        * glm::scale(I, glm::vec3(0.5, 6.0, 4.0));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
+
+        // Pared Derecha
+        /*
+        glm::mat4 M_Der = glm::translate(I, glm::vec3( anchoPasillo, 1.0, zPos))
+                        * glm::scale(I, glm::vec3(0.5, 6.0, 4.0));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Der);
+        */
+
+        // Luces de zócalo Izquierda
+        glm::mat4 Luz_Izq = glm::translate(I, glm::vec3(-anchoPasillo + 0.6, -1.8, zPos))
+                          * glm::scale(I, glm::vec3(0.1, 0.5, 4.0));
+        drawObjectTex(cube, texGuideLine, P, V, Luz_Izq);
+
+
+        /*
+        // Luces de zócalo Derecha
+        glm::mat4 Luz_Der = glm::translate(I, glm::vec3( anchoPasillo - 0.6, -1.8, zPos))
+                          * glm::scale(I, glm::vec3(0.1, 0.5, 4.0));
+        drawObjectTex(cube, texGuideLine, P, V, Luz_Der);
+        */
+    }
+
+    // 4. SUCIEDAD
+
+    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, -1.95, 2.0))
+                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
+    drawObjectTex(plane, texRuby, P, V, Suciedad);
 
 }
 
