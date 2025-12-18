@@ -57,17 +57,20 @@ Model tapaSirena;
 
 // Imagenes (texturas)
 Texture imgNoEmissive;
+Texture imgWhiteMetal;
+Texture imgGreyMetal;
+Texture imgBlackMetal;
+Texture imgBlackRubber;
+Texture imgBlueGlass;
+Texture imgRedGlass;
+
 Texture imgRuby;
-Texture imgGold;
-Texture imgChess;
-Texture imgCubeDiffuse;
-Texture imgCubeSpecular;
-Texture imgWallNormal;
 
 // Imagenes TEXTURA ESCENARIO
 Texture imgAxiomFloor;
 Texture imgAxiomWall;
 Texture imgGuideLine;
+Texture imgWallNormal;
 
 // FIN Imagenes TEXTURA ESCENARIO
 
@@ -80,17 +83,22 @@ Light lightD[NLD];
 Light lightP[NLP];
 Light lightF[NLF];
 Material mluz;
-Textures texRuby;
-Textures texGold;
-Textures texChess;
-Textures texCube;
-Textures texWall;
 
 // TEXTURA ESCENARIO
 Textures texAxiomFloor;
 Textures texAxiomWall;
 Textures texGuideLine;
+
+Textures texRuby;
 // FIN TEXTURA ESCENARIO
+
+Textures texWhiteMetal;
+Textures texGreyMetal;
+Textures texBlackMetal;
+Textures texBlackRubber;
+Textures texBlueGlass;
+Textures texRedGlass;
+
 
 //  Ancho del pasillo
 
@@ -214,18 +222,23 @@ void configScene()
 
    // Imagenes (texturas)
    imgNoEmissive.initTexture("resources/textures/imgNoEmissive.png");
+
    imgRuby.initTexture("resources/textures/imgRuby.png");
-   imgGold.initTexture("resources/textures/imgGold.png");
-   imgChess.initTexture("resources/textures/imgChess.png");
-   imgCubeDiffuse.initTexture("resources/textures/imgCubeDiffuse.png");
-   imgCubeSpecular.initTexture("resources/textures/imgCubeSpecular.png");
-   imgWallNormal.initTexture("resources/textures/imgWallNormal.png");
+
+   imgWhiteMetal.initTexture("resources/textures/whiteMetal.jpg");
+   imgGreyMetal.initTexture("resources/textures/greyMetal.jpg");
+   imgBlackMetal.initTexture("resources/textures/blackMetal.jpg");
+   imgBlackRubber.initTexture("resources/textures/blackRubber.jpg");
+   imgBlueGlass.initTexture("resources/textures/blueGlass.jpg");
+   imgRedGlass.initTexture("resources/textures/redGlass.jpg");
 
    // [NUEVO] Cargamos texturas para el escenario (reutilizamos las existentes si no tienes nuevas)
    imgAxiomFloor.initTexture("resources/textures/texturaXD.jpg!d");
    imgAxiomWall.initTexture("resources/textures/paredXD.jpg");
    imgGuideLine.initTexture("resources/textures/XD.jpg");
 
+   imgWallNormal.initTexture("resources/textures/imgWallNormal.png");
+   imgRuby.initTexture("resources/textures/imgRuby.png");
    // Luz ambiental global
    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
 
@@ -273,29 +286,43 @@ void configScene()
    mluz.emissive = glm::vec4(1.0, 1.0, 1.0, 1.0);
    mluz.shininess = 1.0;
 
-   texRuby.diffuse = imgRuby.getTexture();
-   texRuby.specular = imgRuby.getTexture();
-   texRuby.emissive = imgNoEmissive.getTexture();
-   texRuby.normal = 0;
-   texRuby.shininess = 76.8;
+   texWhiteMetal.diffuse = imgWhiteMetal.getTexture();
+   texWhiteMetal.specular = imgWhiteMetal.getTexture();
+   texWhiteMetal.emissive = imgNoEmissive.getTexture();
+   texWhiteMetal.normal = 0;
+   texWhiteMetal.shininess = 64.0;
 
-   texGold.diffuse = imgGold.getTexture();
-   texGold.specular = imgGold.getTexture();
-   texGold.emissive = imgNoEmissive.getTexture();
-   texGold.normal = 0;
-   texGold.shininess = 51.2;
+   texGreyMetal.diffuse = imgGreyMetal.getTexture();
+   texGreyMetal.specular = imgGreyMetal.getTexture();
+   texGreyMetal.emissive = imgNoEmissive.getTexture();
+   texGreyMetal.normal = 0;
+   texGreyMetal.shininess = 100.0;
 
-   texChess.diffuse = imgChess.getTexture();
-   texChess.specular = imgChess.getTexture();
-   texChess.emissive = imgNoEmissive.getTexture();
-   texChess.normal = 0;
-   texChess.shininess = 10.0;
+   texBlackMetal.diffuse = imgBlackMetal.getTexture();
+   texBlackMetal.specular = imgBlackMetal.getTexture();
+   texBlackMetal.emissive = imgNoEmissive.getTexture();
+   texBlackMetal.normal = 0;
+   texBlackMetal.shininess = 32.0;
 
-   texCube.diffuse = imgCubeDiffuse.getTexture();
-   texCube.specular = imgCubeSpecular.getTexture();
-   texCube.emissive = imgNoEmissive.getTexture();
-   texCube.normal = 0;
-   texCube.shininess = 10.0;
+   texBlackRubber.diffuse = imgBlackRubber.getTexture();
+   texBlackRubber.specular = imgBlackRubber.getTexture();
+   texBlackRubber.emissive = imgNoEmissive.getTexture();
+   texBlackRubber.normal = 0;
+   texBlackRubber.shininess = 10.0;
+
+   texBlueGlass.diffuse = imgBlueGlass.getTexture();
+   texBlueGlass.specular = imgBlueGlass.getTexture();
+   texBlueGlass.emissive = imgNoEmissive.getTexture();
+   texBlueGlass.normal = 0;
+   texBlueGlass.shininess = 128.0;
+
+   texRedGlass.diffuse = imgRedGlass.getTexture();
+   texRedGlass.specular = imgRedGlass.getTexture();
+   texRedGlass.emissive = imgNoEmissive.getTexture();
+   texRedGlass.normal = 0;
+   texRedGlass.shininess = 128.0;
+
+
 
    // 1. Suelo
    texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
@@ -317,6 +344,12 @@ void configScene()
    texGuideLine.emissive = imgGuideLine.getTexture(); // Brilla
    texGuideLine.normal = 0;
    texGuideLine.shininess = 10.0;
+
+   texRuby.diffuse = imgRuby.getTexture();
+   texRuby.specular = imgRuby.getTexture();
+   texRuby.emissive = imgNoEmissive.getTexture();
+   texRuby.normal = 0;
+   texRuby.shininess = 128.0;
 }
 
 void renderScene()
@@ -588,22 +621,22 @@ void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(cuerpo, texCube, P, V, M);
+   drawObjectTex(cuerpo, texWhiteMetal, P, V, M);
 
-   drawObjectTex(cubreRueda, texGold, P, V, M);
+   drawObjectTex(cubreRueda, texWhiteMetal, P, V, M);
 
-   drawObjectTex(mochila, texRuby, P, V, M);
+   drawObjectTex(mochila, texBlueGlass, P, V, M);
 }
 
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(cara, texGold, P, V, M);
+   drawObjectTex(cara, texBlackMetal, P, V, M);
 
-   drawObjectTex(casco, texCube, P, V, M);
+   drawObjectTex(casco, texWhiteMetal, P, V, M);
 
-   drawObjectTex(tapaCasco, texCube, P, V, M);
+   drawObjectTex(tapaCasco, texWhiteMetal, P, V, M);
 
-   drawObjectTex(cuello, texGold, P, V, M);
+   drawObjectTex(cuello, texGreyMetal, P, V, M);
 
    drawSirena(P, V, M);
 }
@@ -612,9 +645,9 @@ void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::mat4 T = glm::translate(I, glm::vec3(0.0, alturaSirena, 0.0));
 
-   drawObjectTex(cristalSirena, texRuby, P, V, M * T);
+   drawObjectTex(cristalSirena, texRedGlass, P, V, M * T);
 
-   drawObjectTex(tapaSirena, texCube, P, V, M * T);
+   drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * T);
 }
 
 void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -628,7 +661,7 @@ void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 void drawBrazoDer(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
 
-   drawObjectTex(ejeBrazoDerecho, texGold, P, V, M);
+   drawObjectTex(ejeBrazoDerecho, texGreyMetal, P, V, M);
 
    glm::vec3 centro = glm::vec3(-21.74f, 45.53f, -8.83f);
 
@@ -636,20 +669,20 @@ void drawBrazoDer(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Tvuelta = glm::translate(I, centro);
 
-   drawObjectTex(brazoDerecho, texGold, P, V, M * Tvuelta * R * Torigen);
+   drawObjectTex(brazoDerecho, texWhiteMetal, P, V, M * Tvuelta * R * Torigen);
 }
 
 void drawBrazoIzq(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
+   drawObjectTex(ejeBrazoIzquierdo, texGreyMetal, P, V, M);
+
    glm::vec3 centro = glm::vec3(22.63f, 45.53f, -8.83f);
 
    glm::mat4 Torigen = glm::translate(I, -centro);
    glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Tvuelta = glm::translate(I, centro);
 
-   drawObjectTex(ejeBrazoIzquierdo, texGold, P, V, M);
-
-   drawObjectTex(brazoIzquierdo, texGold, P, V, M * Tvuelta * R * Torigen);
+   drawObjectTex(brazoIzquierdo, texWhiteMetal, P, V, M * Tvuelta * R * Torigen);
 }
 
 void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -676,14 +709,15 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    // 2. Moverse con los brazos (Melevacion)
    // 3. Posición del Robot (M)
 
-   drawObjectTex(aspiradora, texChess, P, V, M * Melevacion * Mgiro);
-   drawObjectTex(tapaAspiradora, texGold, P, V, M * Melevacion);
+   drawObjectTex(aspiradora, texBlackRubber, P, V, M * Melevacion * Mgiro);
+   drawObjectTex(tapaAspiradora, texBlueGlass, P, V, M * Melevacion);
 }
 
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(rueda, texGold, P, V, M);
+   drawObjectTex(rueda, texBlackRubber, P, V, M);
 }
+
 
 void moverSirena()
 {
