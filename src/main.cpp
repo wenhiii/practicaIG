@@ -108,9 +108,12 @@ float alphaY = 0.0;
 float anguloAspiradora = 0.0f;
 float anguloBrazos = 0.0f;
 float alturaSirena = -7.42f;
+float anguloGiro = 0.0f;
 
 bool animacionActiva = false;
 bool sirenaLevantada = false;
+bool giroIzq = false;
+bool giroDer = false;
 
 int main()
 {
@@ -320,6 +323,11 @@ void renderScene()
 
    moverSirena();
 
+   float velocidadGiro = 2.0f; 
+
+   if (giroIzq) anguloGiro += velocidadGiro; // Izquierda
+   if (giroDer) anguloGiro -= velocidadGiro; // Derecha
+
    // Borramos el buffer de color
    glClearColor(0.0, 0.0, 0.0, 0.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -387,8 +395,9 @@ void renderScene()
       */
 
       // M-O
+      glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
       glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
-      drawMO(P, V, S);
+      drawMO(P, V, S * R);
    }
 
    // 4. SUCIEDAD
@@ -491,8 +500,21 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
    case GLFW_KEY_Y:
       if (action == GLFW_PRESS)
       {
-         sirenaLevantada = !sirenaLevantada; // Cambia true <-> false
+         sirenaLevantada = !sirenaLevantada;
       }
+      break;
+   case GLFW_KEY_Q:
+      if (action == GLFW_PRESS)
+         giroIzq = true;
+      if (action == GLFW_RELEASE)
+         giroIzq = false;
+      break;
+
+   case GLFW_KEY_E:
+      if (action == GLFW_PRESS)
+         giroDer = true;
+      if (action == GLFW_RELEASE)
+         giroDer = false;
       break;
    }
 }
