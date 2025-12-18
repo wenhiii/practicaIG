@@ -22,6 +22,7 @@ void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
 void moverSirena();
+void movimientoMO();
 
 void funFramebufferSize(GLFWwindow *window, int width, int height);
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -109,11 +110,17 @@ float anguloAspiradora = 0.0f;
 float anguloBrazos = 0.0f;
 float alturaSirena = -7.42f;
 float anguloGiro = 0.0f;
+float posX = 0.0f;
+float posZ = 0.0f;
 
 bool animacionActiva = false;
 bool sirenaLevantada = false;
 bool giroIzq = false;
 bool giroDer = false;
+bool movW = false;
+bool movS = false;
+bool movA = false;
+bool movD = false;
 
 int main()
 {
@@ -322,11 +329,14 @@ void renderScene()
    }
 
    moverSirena();
+   movimientoMO();
 
-   float velocidadGiro = 2.0f; 
+   float velocidadGiro = 2.0f;
 
-   if (giroIzq) anguloGiro += velocidadGiro; // Izquierda
-   if (giroDer) anguloGiro -= velocidadGiro; // Derecha
+   if (giroIzq)
+      anguloGiro += velocidadGiro; // Izquierda
+   if (giroDer)
+      anguloGiro -= velocidadGiro; // Derecha
 
    // Borramos el buffer de color
    glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -395,9 +405,10 @@ void renderScene()
       */
 
       // M-O
+      glm::mat4 T = glm::translate(I, glm::vec3(posX, 0.0, posZ));
       glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
       glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
-      drawMO(P, V, S * R);
+      drawMO(P, V, S * T * R);
    }
 
    // 4. SUCIEDAD
@@ -515,6 +526,30 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
          giroDer = true;
       if (action == GLFW_RELEASE)
          giroDer = false;
+      break;
+   case GLFW_KEY_W:
+      if (action == GLFW_PRESS)
+         movW = true;
+      if (action == GLFW_RELEASE)
+         movW = false;
+      break;
+   case GLFW_KEY_S:
+      if (action == GLFW_PRESS)
+         movS = true;
+      if (action == GLFW_RELEASE)
+         movS = false;
+      break;
+   case GLFW_KEY_A:
+      if (action == GLFW_PRESS)
+         movA = true;
+      if (action == GLFW_RELEASE)
+         movA = false;
+      break;
+   case GLFW_KEY_D:
+      if (action == GLFW_PRESS)
+         movD = true;
+      if (action == GLFW_RELEASE)
+         movD = false;
       break;
    }
 }
@@ -672,5 +707,29 @@ void moverSirena()
          if (alturaSirena < -7.42f)
             alturaSirena = -7.42f;
       }
+   }
+}
+
+void movimientoMO()
+{
+   float velocidadMov = 1.0f;
+
+   float rad = glm::radians(anguloGiro);
+
+   if (movW) {
+       posX += sin(rad) * velocidadMov;
+       posZ += cos(rad) * velocidadMov;
+   }
+   if (movS) {
+       posX -= sin(rad) * velocidadMov;
+       posZ -= cos(rad) * velocidadMov;
+   }
+   if (movA) {
+       posX += cos(rad) * velocidadMov; 
+       posZ -= sin(rad) * velocidadMov;
+   }
+   if (movD) {
+       posX -= cos(rad) * velocidadMov;
+       posZ += sin(rad) * velocidadMov;
    }
 }
