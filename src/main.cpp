@@ -83,6 +83,7 @@ Light lightD[NLD];
 Light lightP[NLP];
 Light lightF[NLF];
 Material mluz;
+Material mOjo;
 
 // TEXTURA ESCENARIO
 Textures texAxiomFloor;
@@ -287,6 +288,12 @@ void configScene()
    mluz.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
    mluz.emissive = glm::vec4(1.0, 1.0, 1.0, 1.0);
    mluz.shininess = 1.0;
+
+   mOjo.ambient = glm::vec4(0.2, 0.2, 0.0, 1.0);
+   mOjo.diffuse = glm::vec4(0.9, 0.8, 0.2, 1.0);
+   mOjo.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
+   mOjo.emissive = glm::vec4(0.8, 0.7, 0.1, 1.0);
+   mOjo.shininess = 0.75;
 
    texWhiteMetal.diffuse = imgWhiteMetal.getTexture();
    texWhiteMetal.specular = imgWhiteMetal.getTexture();
@@ -632,7 +639,7 @@ void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawObjectTex(cuerpo, texWhiteMetal, P, V, M);
 
-   drawObjectTex(cubreRueda, texWhiteMetal, P, V, M);
+   drawObjectTex(cubreRueda, texGreyMetal, P, V, M);
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -655,6 +662,17 @@ void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    drawObjectTex(cuello, texGreyMetal, P, V, M);
 
    drawSirena(P, V, M);
+
+   glm::mat4 R = glm::rotate(I, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 S = glm::scale(I, glm::vec3(6.0f, 1.0f, 1.2f));
+   glm::mat4 T = glm::translate(I, glm::vec3(8.0f, 60.0f, 26.6f));
+
+   drawObjectMat(plane, mOjo, P, V, M * T * R * S);
+
+   T = glm::translate(I, glm::vec3(-8.0f, 60.0f, 26.6f));
+
+   drawObjectMat(plane, mOjo, P, V, M * T * R * S);
+
 }
 
 void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -756,7 +774,7 @@ void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
 void moverSirena()
 {
-   float velocidadSirena = 0.1f;
+   float velocidadSirena = 0.05f;
 
    if (sirenaLevantada)
    {
@@ -795,7 +813,10 @@ void movimientoMO()
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
-      maxInclinacionX = 15.0f;
+      if (animacionActiva)
+         maxInclinacionX = 40.0f;
+      if (!animacionActiva)
+         maxInclinacionX = 15.0f;
    }
    if (movS)
    {
@@ -819,8 +840,8 @@ void movimientoMO()
       maxInclinacionZ = 15.0f;
    }
 
-   if (inclinacionX < maxInclinacionX) inclinacionX += 1.0f;
-   if (inclinacionX > maxInclinacionX) inclinacionX -= 1.0f;
-   if (inclinacionZ < maxInclinacionZ) inclinacionZ += 1.0f;
-   if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 1.0f;
+   if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
+   if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
+   if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
+   if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 0.75f;
 }
