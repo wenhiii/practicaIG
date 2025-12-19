@@ -99,7 +99,6 @@ Textures texBlackRubber;
 Textures texBlueGlass;
 Textures texRedGlass;
 
-
 //  Ancho del pasillo
 
 float anchoPasillo = 10.0f;
@@ -120,6 +119,7 @@ float alturaSirena = -7.42f;
 float anguloGiro = 0.0f;
 float posX = 0.0f;
 float posZ = 0.0f;
+glm::mat4 rotRueda = I;
 
 bool animacionActiva = false;
 bool sirenaLevantada = false;
@@ -321,8 +321,6 @@ void configScene()
    texRedGlass.emissive = imgRedGlass.getTexture();
    texRedGlass.normal = 0;
    texRedGlass.shininess = 128.0;
-
-
 
    // 1. Suelo
    texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
@@ -737,9 +735,13 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawObjectTex(rueda, texBlackRubber, P, V, M);
-}
+   glm::vec3 centroRueda = glm::vec3(0.0f, 9.80f, -3.58f);
 
+   glm::mat4 Tida = glm::translate(I, -centroRueda);
+   glm::mat4 Tvuelta = glm::translate(I, centroRueda);
+
+   drawObjectTex(rueda, texBlackRubber, P, V, M * Tvuelta * rotRueda * Tida);
+}
 
 void moverSirena()
 {
@@ -770,22 +772,32 @@ void movimientoMO()
 {
    float velocidadMov = 1.0f;
 
+   float velocidadRot = 5.0f;
+
    float rad = glm::radians(anguloGiro);
 
-   if (movW) {
-       posX += sin(rad) * velocidadMov;
-       posZ += cos(rad) * velocidadMov;
+   if (movW)
+   {
+      posX += sin(rad) * velocidadMov;
+      posZ += cos(rad) * velocidadMov;
+      rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
    }
-   if (movS) {
-       posX -= sin(rad) * velocidadMov;
-       posZ -= cos(rad) * velocidadMov;
+   if (movS)
+   {
+      posX -= sin(rad) * velocidadMov;
+      posZ -= cos(rad) * velocidadMov;
+      rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
    }
-   if (movA) {
-       posX += cos(rad) * velocidadMov; 
-       posZ -= sin(rad) * velocidadMov;
+   if (movA)
+   {
+      posX += cos(rad) * velocidadMov;
+      posZ -= sin(rad) * velocidadMov;
+      rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
    }
-   if (movD) {
-       posX -= cos(rad) * velocidadMov;
-       posZ += sin(rad) * velocidadMov;
+   if (movD)
+   {
+      posX -= cos(rad) * velocidadMov;
+      posZ += sin(rad) * velocidadMov;
+      rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
    }
 }
