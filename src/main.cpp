@@ -119,6 +119,8 @@ float alturaSirena = -7.42f;
 float anguloGiro = 0.0f;
 float posX = 0.0f;
 float posZ = 0.0f;
+float inclinacionX = 0.0f;
+float inclinacionZ = 0.0f;
 glm::mat4 rotRueda = I;
 
 bool animacionActiva = false;
@@ -611,9 +613,18 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
 
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   drawCuerpo(P, V, M);
-   drawCabeza(P, V, M);
-   drawBrazos(P, V, M);
+   glm::vec3 centro = glm::vec3(0.0f, 9.80f, -3.58f);
+
+   glm::mat4 Tida = glm::translate(glm::mat4(1.0f), -centro);
+   
+   glm::mat4 Rx = glm::rotate(I, glm::radians(inclinacionX), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 Rz = glm::rotate(I, glm::radians(inclinacionZ), glm::vec3(0.0, 0.0, 1.0));
+
+   glm::mat4 Tvuelta = glm::translate(glm::mat4(1.0f), centro);
+
+   drawCuerpo(P, V, M * Tvuelta * Rz * Rx * Tida);
+   drawCabeza(P, V, M * Tvuelta * Rz * Rx * Tida);
+   drawBrazos(P, V, M * Tvuelta * Rz * Rx * Tida);
    drawRueda(P, V, M);
 }
 
@@ -776,28 +787,40 @@ void movimientoMO()
 
    float rad = glm::radians(anguloGiro);
 
+   float maxInclinacionX = 0.0f;
+   float maxInclinacionZ = 0.0f;
+
    if (movW)
    {
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
+      maxInclinacionX = 15.0f;
    }
    if (movS)
    {
       posX -= sin(rad) * velocidadMov;
       posZ -= cos(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
+      maxInclinacionX = -15.0f;
    }
    if (movA)
    {
       posX += cos(rad) * velocidadMov;
       posZ -= sin(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
+      maxInclinacionZ = -15.0f;
    }
    if (movD)
    {
       posX -= cos(rad) * velocidadMov;
       posZ += sin(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
+      maxInclinacionZ = 15.0f;
    }
+
+   if (inclinacionX < maxInclinacionX) inclinacionX += 1.0f;
+   if (inclinacionX > maxInclinacionX) inclinacionX -= 1.0f;
+   if (inclinacionZ < maxInclinacionZ) inclinacionZ += 1.0f;
+   if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 1.0f;
 }
