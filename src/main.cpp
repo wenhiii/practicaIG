@@ -229,8 +229,8 @@ void configScene()
    imgGreyMetal.initTexture("resources/textures/greyMetal.jpg");
    imgBlackMetal.initTexture("resources/textures/blackMetal.jpg");
    imgBlackRubber.initTexture("resources/textures/blackRubber.jpg");
-   imgBlueGlass.initTexture("resources/textures/blueGlass.jpg");
-   imgRedGlass.initTexture("resources/textures/redGlass.jpg");
+   imgBlueGlass.initTexture("resources/textures/blueGlass.png");
+   imgRedGlass.initTexture("resources/textures/redGlass.png");
 
    // [NUEVO] Cargamos texturas para el escenario (reutilizamos las existentes si no tienes nuevas)
    imgAxiomFloor.initTexture("resources/textures/texturaXD.jpg!d");
@@ -312,13 +312,13 @@ void configScene()
 
    texBlueGlass.diffuse = imgBlueGlass.getTexture();
    texBlueGlass.specular = imgBlueGlass.getTexture();
-   texBlueGlass.emissive = imgNoEmissive.getTexture();
+   texBlueGlass.emissive = imgBlueGlass.getTexture();
    texBlueGlass.normal = 0;
    texBlueGlass.shininess = 128.0;
 
    texRedGlass.diffuse = imgRedGlass.getTexture();
    texRedGlass.specular = imgRedGlass.getTexture();
-   texRedGlass.emissive = imgNoEmissive.getTexture();
+   texRedGlass.emissive = imgRedGlass.getTexture();
    texRedGlass.normal = 0;
    texRedGlass.shininess = 128.0;
 
@@ -625,7 +625,14 @@ void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
    drawObjectTex(cubreRueda, texWhiteMetal, P, V, M);
 
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthMask(GL_FALSE);
+
    drawObjectTex(mochila, texBlueGlass, P, V, M);
+
+   glDepthMask(GL_TRUE);
+   glDisable(GL_BLEND);
 }
 
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -645,9 +652,16 @@ void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::mat4 T = glm::translate(I, glm::vec3(0.0, alturaSirena, 0.0));
 
+   drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * T);
+
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthMask(GL_FALSE);
+
    drawObjectTex(cristalSirena, texRedGlass, P, V, M * T);
 
-   drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * T);
+   glDepthMask(GL_TRUE);
+   glDisable(GL_BLEND);
 }
 
 void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M)
@@ -710,7 +724,15 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    // 3. Posición del Robot (M)
 
    drawObjectTex(aspiradora, texBlackRubber, P, V, M * Melevacion * Mgiro);
+
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthMask(GL_FALSE);
+
    drawObjectTex(tapaAspiradora, texBlueGlass, P, V, M * Melevacion);
+
+   glDepthMask(GL_TRUE);
+   glDisable(GL_BLEND);
 }
 
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
