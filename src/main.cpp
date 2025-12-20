@@ -21,7 +21,7 @@ void drawBrazoIzq(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
-void moverSirena();
+void levantarSirena();
 void movimientoMO();
 void luzOjos(glm::mat4 M);
 
@@ -65,9 +65,11 @@ Texture imgBlackRubber;
 Texture imgBlueGlass;
 Texture imgRedGlass;
 
-Texture imgRuby;
+
 
 // Imagenes TEXTURA ESCENARIO
+Texture imgRuby;
+
 Texture imgAxiomFloor;
 Texture imgAxiomWall;
 Texture imgGuideLine;
@@ -78,7 +80,7 @@ Texture imgWallNormal;
 // Luces y materiales
 #define NLD 1
 #define NLP 1
-#define NLF 4
+#define NLF 6
 Light lightG;
 Light lightD[NLD];
 Light lightP[NLP];
@@ -117,6 +119,7 @@ float alphaY = 0.0;
 // Movimiento M-O
 float anguloAspiradora = 0.0f;
 float anguloBrazos = 0.0f;
+float anguloSirena = 0.0f;
 float alturaSirena = -7.42f;
 float anguloGiro = 0.0f;
 float posX = 0.0f;
@@ -272,6 +275,7 @@ void configScene()
    lightF[0].c0 = 1.000;
    lightF[0].c1 = 0.090;
    lightF[0].c2 = 0.032;
+
    lightF[1].position = glm::vec3(2.0, 2.0, 5.0);
    lightF[1].direction = glm::vec3(-2.0, -2.0, -5.0);
    lightF[1].ambient = glm::vec3(0.2, 0.2, 0.2);
@@ -283,16 +287,43 @@ void configScene()
    lightF[1].c1 = 0.090;
    lightF[1].c2 = 0.032;
 
-   for(int i = 2; i < 4; i++) {
-       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
-       lightF[i].diffuse = glm::vec3(0.8, 0.7, 0.2);       
-       lightF[i].specular = glm::vec3(0.8, 0.7, 0.2);
-       lightF[i].innerCutOff = 15.0;                       
-       lightF[i].outerCutOff = lightF[i].innerCutOff + 10.0; 
-       lightF[i].c0 = 1.000;
-       lightF[i].c1 = 0.090;
-       lightF[i].c2 = 0.032;
-   }
+   // Luces Ojos M-O
+   lightF[2].ambient = glm::vec3(0.0, 0.0, 0.0);
+   lightF[2].diffuse = glm::vec3(0.8, 0.7, 0.2);
+   lightF[2].specular = glm::vec3(0.8, 0.7, 0.2);
+   lightF[2].innerCutOff = 15.0;
+   lightF[2].outerCutOff = lightF[2].innerCutOff + 10.0;
+   lightF[2].c0 = 1.000;
+   lightF[2].c1 = 0.090;
+   lightF[2].c2 = 0.032;
+
+   lightF[3].ambient = glm::vec3(0.0, 0.0, 0.0);
+   lightF[3].diffuse = glm::vec3(0.8, 0.7, 0.2);
+   lightF[3].specular = glm::vec3(0.8, 0.7, 0.2);
+   lightF[3].innerCutOff = 15.0;
+   lightF[3].outerCutOff = lightF[3].innerCutOff + 10.0;
+   lightF[3].c0 = 1.000;
+   lightF[3].c1 = 0.090;
+   lightF[3].c2 = 0.032;
+
+   // Luces Sirena M-O
+   lightF[4].ambient = glm::vec3(0.0, 0.0, 0.0);
+   lightF[4].diffuse = glm::vec3(0.9, 0.9, 0.9);
+   lightF[4].specular = glm::vec3(0.9, 0.9, 0.9);
+   lightF[4].innerCutOff = 20.0;
+   lightF[4].outerCutOff = 30.0;
+   lightF[4].c0 = 1.0;
+   lightF[4].c1 = 0.09;
+   lightF[4].c2 = 0.032;
+
+   lightF[5].ambient = glm::vec3(0.0, 0.0, 0.0);
+   lightF[5].diffuse = glm::vec3(0.9, 0.9, 0.9);
+   lightF[5].specular = glm::vec3(0.9, 0.9, 0.9);
+   lightF[5].innerCutOff = 20.0;
+   lightF[5].outerCutOff = 30.0;
+   lightF[5].c0 = 1.0;
+   lightF[5].c1 = 0.09;
+   lightF[5].c2 = 0.032;
 
    // Materiales existentes
    mluz.ambient = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -380,7 +411,7 @@ void renderScene()
          anguloAspiradora -= 360.0f;
    }
 
-   moverSirena();
+   levantarSirena();
    movimientoMO();
 
    float velocidadGiro = 2.0f;
@@ -694,15 +725,44 @@ void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
 void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-   glm::mat4 T = glm::translate(I, glm::vec3(0.0, alturaSirena, 0.0));
+   glm::mat4 Televacion = glm::translate(I, glm::vec3(0.0, alturaSirena, 0.0));
+   
+   drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * Televacion);
 
-   drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * T);
+
+   glm::vec3 centroCristal = glm::vec3(-1.13f, 101.94f, -4.40f);
+   
+   float radioGiro = 2.5f;
+   
+   float escala = 1.0f; 
+
+   glm::mat4 T_Centro = glm::translate(I, centroCristal); // Ir al centro del cristal
+   glm::mat4 T_Radio  = glm::translate(I, glm::vec3(radioGiro, 0.0, 0.0)); // Separarse
+   glm::mat4 S        = glm::scale(I, glm::vec3(escala)); // Hacerla pequeña
+
+   glm::mat4 R1 = glm::rotate(I, glm::radians(anguloSirena), glm::vec3(0.0, 1.0, 0.0));
+   
+   glm::mat4 M_Pos1 = M * Televacion * T_Centro * R1 * T_Radio;
+   
+   drawObjectMat(sphere, mluz, P, V, M_Pos1 * S);
+
+   lightF[4].position  = glm::vec3(M_Pos1 * glm::vec4(0.0, 0.0, 0.0, 1.0));
+   lightF[4].direction = glm::normalize(glm::vec3(M * Televacion * R1 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
+
+
+   glm::mat4 R2 = glm::rotate(I, glm::radians(anguloSirena + 180.0f), glm::vec3(0.0, 1.0, 0.0));
+   
+   glm::mat4 M_Pos2 = M * Televacion * T_Centro * R2 * T_Radio;
+
+   drawObjectMat(sphere, mluz, P, V, M_Pos2 * S);
+   lightF[5].position  = glm::vec3(M_Pos2 * glm::vec4(0.0, 0.0, 0.0, 1.0));
+   lightF[5].direction = glm::normalize(glm::vec3(M * Televacion * R2 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glDepthMask(GL_FALSE);
 
-   drawObjectTex(cristalSirena, texRedGlass, P, V, M * T);
+   drawObjectTex(cristalSirena, texRedGlass, P, V, M * Televacion);
 
    glDepthMask(GL_TRUE);
    glDisable(GL_BLEND);
@@ -789,7 +849,7 @@ void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    drawObjectTex(rueda, texBlackRubber, P, V, M * Tvuelta * rotRueda * Tida);
 }
 
-void moverSirena()
+void levantarSirena()
 {
    float velocidadSirena = 0.05f;
 
@@ -801,6 +861,9 @@ void moverSirena()
          if (alturaSirena > 0.0f)
             alturaSirena = 0.0f;
       }
+
+      anguloSirena += 5.0f; 
+      if (anguloSirena > 360.0f) anguloSirena -= 360.0f;
    }
    else
    {
