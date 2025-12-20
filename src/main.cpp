@@ -23,6 +23,7 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
 void moverSirena();
 void movimientoMO();
+void luzOjos(glm::mat4 M);
 
 void funFramebufferSize(GLFWwindow *window, int width, int height);
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -77,7 +78,7 @@ Texture imgWallNormal;
 // Luces y materiales
 #define NLD 1
 #define NLP 1
-#define NLF 2
+#define NLF 4
 Light lightG;
 Light lightD[NLD];
 Light lightP[NLP];
@@ -282,6 +283,17 @@ void configScene()
    lightF[1].c1 = 0.090;
    lightF[1].c2 = 0.032;
 
+   for(int i = 2; i < 4; i++) {
+       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
+       lightF[i].diffuse = glm::vec3(0.8, 0.7, 0.2);       
+       lightF[i].specular = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].innerCutOff = 15.0;                       
+       lightF[i].outerCutOff = lightF[i].innerCutOff + 10.0; 
+       lightF[i].c0 = 1.000;
+       lightF[i].c1 = 0.090;
+       lightF[i].c2 = 0.032;
+   }
+
    // Materiales existentes
    mluz.ambient = glm::vec4(0.0, 0.0, 0.0, 1.0);
    mluz.diffuse = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -401,6 +413,13 @@ void renderScene()
    glm::mat4 V = glm::lookAt(eye, center, up);
    shaders.setVec3("ueye", eye);
 
+
+   glm::mat4 T = glm::translate(I, glm::vec3(posX, 0.0, posZ));
+   glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
+   glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
+
+   luzOjos(S * T * R);
+
    // Fijamos las luces
    setLights(P, V);
 
@@ -445,9 +464,7 @@ void renderScene()
       */
 
       // M-O
-      glm::mat4 T = glm::translate(I, glm::vec3(posX, 0.0, posZ));
-      glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
-      glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
+      
       drawMO(P, V, S * T * R);
    }
 
@@ -474,7 +491,7 @@ void setLights(glm::mat4 P, glm::mat4 V)
       drawObjectMat(sphere, mluz, P, V, M);
    }
 
-   for (int i = 0; i < NLF; i++)
+   for (int i = 0; i < 2; i++)
    {
       glm::mat4 M = glm::translate(I, lightF[i].position) * glm::scale(I, glm::vec3(0.025));
       drawObjectMat(sphere, mluz, P, V, M);
@@ -844,4 +861,29 @@ void movimientoMO()
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
    if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 0.75f;
+}
+
+
+void luzOjos(glm::mat4 M){
+   glm::vec3 centro = glm::vec3(0.0f, 9.80f, -3.58f);
+
+   glm::mat4 Tida = glm::translate(glm::mat4(1.0f), -centro);
+   glm::mat4 Rx = glm::rotate(I, glm::radians(inclinacionX), glm::vec3(1.0, 0.0, 0.0));
+   glm::mat4 Rz = glm::rotate(I, glm::radians(inclinacionZ), glm::vec3(0.0, 0.0, 1.0));
+   glm::mat4 Tvuelta = glm::translate(glm::mat4(1.0f), centro);
+   
+   glm::mat4 Mcabeza = M * Tvuelta * Rz * Rx * Tida;
+
+   // Ojo Izquierdo: -8.0f, 60.0f, 26.6f
+   // Ojo Derecho:   8.0f, 60.0f, 26.6f, 1.0f
+   glm::vec4 posOjoIzq = glm::vec4(-8.0f, 60.0f, 26.6f, 1.0f);
+   glm::vec4 posOjoDer = glm::vec4(8.0f, 60.0f, 26.6f, 1.0f);
+
+   glm::vec4 direccionOjos   = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f); 
+
+   lightF[2].position  = glm::vec3(Mcabeza * posOjoIzq);
+   lightF[2].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
+
+   lightF[3].position  = glm::vec3(Mcabeza * posOjoDer);
+   lightF[3].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
 }
