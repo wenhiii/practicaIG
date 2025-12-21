@@ -689,6 +689,11 @@ void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 
    drawObjectTex(cubreRueda, texGreyMetal, P, V, M);
 
+   glm::mat4 T = glm::translate(I, glm::vec3(1.0f, 55.24f, -7.86f));
+   glm::mat4 S = glm::scale(I, glm::vec3(16.5f, 1.0f, 12.0f));
+
+   drawObjectTex(plane, texWhiteMetal, P, V, M * T * S);
+
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glDepthMask(GL_FALSE);
