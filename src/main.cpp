@@ -116,6 +116,11 @@ float fovy = 60.0;
 float alphaX = 0.0;
 float alphaY = 0.0;
 
+double lastX = 0.0;
+double lastY = 0.0;
+bool firstClick = true;
+float sensitivity = 0.5f;
+
 // Movimiento M-O
 float anguloAspiradora = 0.0f;
 float anguloBrazos = 0.0f;
@@ -653,17 +658,33 @@ void funScroll(GLFWwindow *window, double xoffset, double yoffset)
 
 void funCursorPos(GLFWwindow *window, double xpos, double ypos)
 {
-
-   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+      firstClick = true;
       return;
+   }
 
-   float limY = 89.0;
-   alphaX = 90.0 * (2.0 * xpos / (float)w - 1.0);
-   alphaY = 90.0 * (1.0 - 2.0 * ypos / (float)h);
-   if (alphaY < -limY)
-      alphaY = -limY;
+
+   if (firstClick) {
+      lastX = xpos;
+      lastY = ypos;
+      firstClick = false;
+   }
+
+   double xoffset = xpos - lastX;
+   double yoffset = lastY - ypos;
+
+   lastX = xpos;
+   lastY = ypos;
+
+
+   alphaX += xoffset * sensitivity;
+   alphaY += yoffset * sensitivity;
+
+   float limY = 89.0f;
    if (alphaY > limY)
       alphaY = limY;
+   if (alphaY < -limY)
+      alphaY = -limY;
 }
 
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
