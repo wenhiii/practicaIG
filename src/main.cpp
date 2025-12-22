@@ -11,6 +11,8 @@ void setLights(glm::mat4 P, glm::mat4 V);
 void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
+void dibujarEscenario(glm::mat4 P, glm::mat4 V);
+
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M);
@@ -459,55 +461,10 @@ void renderScene()
    // Fijamos las luces
    setLights(P, V);
 
-   // --------------------------------------------------------------------------
-   // EL PASILLO
-   // --------------------------------------------------------------------------
 
-   // 1. EL SUELO
-   glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(0.0, -2.0, 0.0)) * glm::scale(I, glm::vec3(8.0, 1.0, 40.0));
-   drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
-
-   // 2. LÍNEA DE GUÍA
-
-   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, -1.98, 0.0)) * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
-   drawObjectTex(plane, texGuideLine, P, V, MatrixLinea);
-
-   // 3. PAREDES MODULARES (Bucle)
-   for (int i = -3; i <= 3; i++)
-   {
-      float zPos = i * 5.0f;
-
-      // Pared Izquierda
-      glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, 1.0, zPos)) * glm::scale(I, glm::vec3(0.5, 6.0, 4.0));
-      drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
-
-      // Pared Derecha
-      /*
-      glm::mat4 M_Der = glm::translate(I, glm::vec3( anchoPasillo, 1.0, zPos))
-         * glm::scale(I, glm::vec3(0.5, 6.0, 4.0));
-      drawObjectTex(cube, texAxiomWall, P, V, M_Der);
-      */
-
-      // Luces de zócalo Izquierda
-      glm::mat4 Luz_Izq = glm::translate(I, glm::vec3(-anchoPasillo + 0.6, -1.8, zPos)) * glm::scale(I, glm::vec3(0.1, 0.5, 4.0));
-      drawObjectTex(cube, texGuideLine, P, V, Luz_Izq);
-
-      /*
-      // Luces de zócalo Derecha
-      glm::mat4 Luz_Der = glm::translate(I, glm::vec3( anchoPasillo - 0.6, -1.8, zPos))
-            * glm::scale(I, glm::vec3(0.1, 0.5, 4.0));
-      drawObjectTex(cube, texGuideLine, P, V, Luz_Der);
-      */
-
-      // M-O
-      
+   dibujarEscenario(P, V);
       drawMO(P, V, S * T * R);
-   }
 
-   // 4. SUCIEDAD
-
-   glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, -1.95, 2.0)) * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
-   drawObjectTex(plane, texRuby, P, V, Suciedad);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
@@ -975,4 +932,66 @@ void luzOjos(glm::mat4 M){
 
    lightF[3].position  = glm::vec3(Mcabeza * posOjoDer);
    lightF[3].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
+}
+
+
+void dibujarEscenario(glm::mat4 P, glm::mat4 V)
+{
+   // --------------------------------------------------------------------------
+   // CONFIGURACIÓN DE DIMENSIONES
+   // --------------------------------------------------------------------------
+   float nivelSuelo = -2.0f;
+   float escalaParedY = 6.0f;       // Altura visual de la pared
+   float posY_Pared = nivelSuelo + escalaParedY;
+   float escalaZocaloY = 0.5f;      // Altura visual del zócalo
+   float posY_Zocalo = nivelSuelo + escalaZocaloY;
+
+   // --------------------------------------------------------------------------
+   // 1. EL SUELO
+   // --------------------------------------------------------------------------
+   glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(0.0, nivelSuelo, 0.0))
+                         * glm::scale(I, glm::vec3(anchoPasillo, 1.0, 40.0));
+   drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+
+   // --------------------------------------------------------------------------
+   // 2. LÍNEA DE GUÍA CENTRAL
+   // --------------------------------------------------------------------------
+   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
+                         * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
+   drawObjectTex(plane, texGuideLine, P, V, MatrixLinea);
+
+   // --------------------------------------------------------------------------
+   // 3. PAREDES Y ZÓCALOS (LUCES LATERALES)
+   // --------------------------------------------------------------------------
+   for (int i = -3; i <= 3; i++)
+   {
+      float zPos = i * 5.0f;
+
+      // Pared Izquierda
+      glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, posY_Pared, zPos))
+                      * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
+      drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
+
+      // Pared Derecha
+      glm::mat4 M_Der = glm::translate(I, glm::vec3( anchoPasillo, posY_Pared, zPos))
+                      * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
+      drawObjectTex(cube, texAxiomWall, P, V, M_Der);
+
+      // Luz Zócalo Izquierda
+      glm::mat4 Luz_Izq = glm::translate(I, glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos))
+                        * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 4.0));
+      drawObjectTex(cube, texGuideLine, P, V, Luz_Izq);
+
+      // Luz Zócalo Derecha
+      glm::mat4 Luz_Der = glm::translate(I, glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos))
+                        * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 4.0));
+      drawObjectTex(cube, texGuideLine, P, V, Luz_Der);
+   }
+
+   // --------------------------------------------------------------------------
+   // 4. SUCIEDAD
+   // --------------------------------------------------------------------------
+   glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
+                      * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
+   drawObjectTex(plane, texRuby, P, V, Suciedad);
 }
