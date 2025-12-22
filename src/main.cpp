@@ -84,7 +84,7 @@ Texture imgWallNormal;
 
 // Luces y materiales
 #define NLD 1
-#define NLP 1
+#define NLP 22
 #define NLF 6
 Light lightG;
 Light lightD[NLD];
@@ -92,12 +92,13 @@ Light lightP[NLP];
 Light lightF[NLF];
 Material mluz;
 Material mOjo;
+Material mNeon;
 
 // TEXTURA ESCENARIO
 Textures texAxiomFloor;
 Textures texAxiomWall;
 Textures texGuideLine;
-
+Textures texZocaloLed;
 Textures texRuby;
 // FIN TEXTURA ESCENARIO
 
@@ -265,6 +266,20 @@ void configScene()
 
    imgWallNormal.initTexture("resources/textures/imgWallNormal.png");
    imgRuby.initTexture("resources/textures/imgRuby.png");
+
+   texZocaloLed.diffuse  = imgWhiteMetal.getTexture(); // La base es blanca/gris con ruido
+   texZocaloLed.specular = imgWhiteMetal.getTexture(); // Brilla si le da luz
+
+   // AQUÍ ESTÁ EL TRUCO: Usamos la textura para emitir luz.
+   // Al no ser un color sólido, tendrá "manchas" de luz más oscuras y claras.
+   texZocaloLed.emissive = imgWhiteMetal.getTexture();
+
+   // TRUCO PRO: Le ponemos relieve de pared para que parezca cristal rugoso
+   texZocaloLed.normal   = imgWallNormal.getTexture();
+
+   texZocaloLed.shininess = 64.0;
+
+
    // Luz ambiental global
    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
 
@@ -282,6 +297,20 @@ void configScene()
    lightP[0].c0 = 1.00;
    lightP[0].c1 = 0.09;
    lightP[0].c2 = 0.032;
+
+   for(int i = 1; i < NLP; i++) {
+      lightP[i].ambient = glm::vec3(0.0, 0.0, 0.0); // Sin ambiente para más contraste
+
+      // Color Azul Cyan estilo TRON
+      lightP[i].diffuse = glm::vec3(0.0, 0.8, 1.0);
+      lightP[i].specular = glm::vec3(0.0, 0.0, 0.0);
+
+      // ATENUACIÓN: Fundamental para tener muchas luces
+      // Usamos una caída rápida (c2 alto) para que la luz se quede cerca del zócalo
+      lightP[i].c0 = 1.0;
+      lightP[i].c1 = 0.5;
+      lightP[i].c2 = 0.8;
+   }
 
    // Luces focales
    lightF[0].position = glm::vec3(-2.0, 2.0, 5.0);
@@ -356,6 +385,20 @@ void configScene()
    mOjo.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
    mOjo.emissive = glm::vec4(0.8, 0.7, 0.1, 1.0);
    mOjo.shininess = 0.75;
+
+   // Configuración del Material NEÓN (Azul Sci-Fi)
+   mNeon.ambient   = glm::vec4(0.0, 0.0, 0.0, 1.0); // Base oscura
+   mNeon.diffuse   = glm::vec4(0.0, 0.0, 0.0, 1.0); // No reacciona a la luz externa
+   mNeon.specular  = glm::vec4(1.0, 1.0, 1.0, 1.0); // Brillo blanco intenso (como cristal)
+
+   // EL SECRETO: Emissive es el color de la luz que emite
+   // Puedes cambiar estos números para cambiar el color:
+   // (0.0, 0.8, 1.0) = Azul Cyan (Tron)
+   // (1.0, 0.1, 0.0) = Rojo Alerta
+   // (1.0, 0.6, 0.0) = Naranja Industrial
+   mNeon.emissive  = glm::vec4(0.0, 0.9, 1.0, 1.0);
+
+   mNeon.shininess = 128.0; // Muy brillante
 
    texWhiteMetal.diffuse = imgWhiteMetal.getTexture();
    texWhiteMetal.specular = imgWhiteMetal.getTexture();
@@ -493,7 +536,7 @@ void setLights(glm::mat4 P, glm::mat4 V)
    for (int i = 0; i < NLF; i++)
       shaders.setLight("ulightF[" + toString(i) + "]", lightF[i]);
 
-   for (int i = 0; i < NLP; i++)
+   for (int i = 0; i < 1; i++)
    {
       glm::mat4 M = glm::translate(I, lightP[i].position) * glm::scale(I, glm::vec3(0.1));
       drawObjectMat(sphere, mluz, P, V, M);
@@ -950,81 +993,94 @@ void luzOjos(glm::mat4 M){
 }
 
 
+
 void dibujarEscenario(glm::mat4 P, glm::mat4 V)
 {
-   // --------------------------------------------------------------------------
-   // CONFIGURACIÓN DE DIMENSIONES
-   // --------------------------------------------------------------------------
+   // Dimensiones
    float nivelSuelo = -2.0f;
-   float escalaParedY = 6.0f;       // Altura visual de la pared
+   float escalaParedY = 6.0f;
    float posY_Pared = nivelSuelo + escalaParedY;
-   float escalaZocaloY = 0.5f;      // Altura visual del zócalo
+   float escalaZocaloY = 0.5f;
    float posY_Zocalo = nivelSuelo + escalaZocaloY;
 
-   // --------------------------------------------------------------------------
-   // 1. EL SUELO
-   // --------------------------------------------------------------------------
-   // Tu OBJ mide 2. Multiplicamos por 5 para tener baldosas de 10x10 metros.
+   // 1. SUELO (Geometría)
    float escala = 5.0f;
-
-   // Bucle Z: 4 filas a lo largo del pasillo
    for (int i = 0; i < 4; i++)
    {
-      // Calculamos la posición Z (-15, -5, 5, 15)
       float zPos = -15.0f + (i * 10.0f);
-
-      // Bucle X: 2 columnas a lo ancho (Izquierda y Derecha)
       for (int j = 0; j < 2; j++)
       {
-         // Si j=0 (izquierda) -> ponemos en -5.0
-         // Si j=1 (derecha)   -> ponemos en +5.0
          float xPos = (j == 0) ? -5.0f : 5.0f;
-
          glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
                                * glm::scale(I, glm::vec3(escala, 1.0, escala));
-
          drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
       }
    }
 
-   // --------------------------------------------------------------------------
-   // 2. LÍNEA DE GUÍA CENTRAL
-   // --------------------------------------------------------------------------
+   // 2. LINEA GUIA SUELO (Geometría única larga)
+   // Aunque es un solo objeto largo, pondremos varias luces a lo largo de él
    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
-                         * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
-   drawObjectTex(plane, texGuideLine, P, V, MatrixLinea);
+                            * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
+   drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
 
-   // --------------------------------------------------------------------------
-   // 3. PAREDES Y ZÓCALOS (LUCES LATERALES)
-   // --------------------------------------------------------------------------
+
+   // 3. PAREDES, ZOCALOS Y COLOCACIÓN DE LUCES
+   // Contador para ir asignando las luces disponibles (empezamos en 1, la 0 es techo)
+   int luzIndex = 1;
+
+   // Recorremos el pasillo de fondo a frente (7 segmentos: -3 a 3)
    for (int i = -3; i <= 3; i++)
    {
-      float zPos = i * 5.0f;
+      float zPos = i * 5.0f; // Distancia entre columnas de luces
 
-      // Pared Izquierda
+      // --- A. DIBUJAR GEOMETRÍA ---
+
+      // Paredes
       glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, posY_Pared, zPos))
                       * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
       drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
 
-      // Pared Derecha
       glm::mat4 M_Der = glm::translate(I, glm::vec3( anchoPasillo, posY_Pared, zPos))
                       * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
       drawObjectTex(cube, texAxiomWall, P, V, M_Der);
 
-      // Luz Zócalo Izquierda
-      glm::mat4 Luz_Izq = glm::translate(I, glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos))
-                        * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 4.0));
-      drawObjectTex(cube, texGuideLine, P, V, Luz_Izq);
+      // Zocalos Geometría
+      glm::vec3 posZocaloIzq = glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos);
+      glm::vec3 posZocaloDer = glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos);
 
-      // Luz Zócalo Derecha
-      glm::mat4 Luz_Der = glm::translate(I, glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos))
-                        * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 4.0));
-      drawObjectTex(cube, texGuideLine, P, V, Luz_Der);
+      glm::mat4 Luz_Izq = glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 2.5));
+      drawObjectTex(cube, texZocaloLed, P, V, Luz_Izq);
+
+      glm::mat4 Luz_Der = glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 2.5));
+      drawObjectTex(cube, texZocaloLed, P, V, Luz_Der);
+
+
+      // --- B. ASIGNAR LUCES REALES ---
+
+      // 1. Luz Izquierda
+      if (luzIndex < NLP) {
+          // La movemos un poco hacia el centro (+0.5) para que ilumine el suelo delante del zocalo
+          lightP[luzIndex].position = posZocaloIzq + glm::vec3(0.15, 0.0, 0.0);
+          luzIndex++;
+      }
+
+      // 2. Luz Derecha
+      if (luzIndex < NLP) {
+          // La movemos un poco hacia el centro (-0.5)
+          lightP[luzIndex].position = posZocaloDer - glm::vec3(0.15, 0.0, 0.0);
+          luzIndex++;
+      }
+
+      // 3. Luz Suelo (Centro)
+      if (luzIndex < NLP) {
+          // Ponemos una luz justo encima de la linea guia en este punto Z
+          // La elevamos un poco (+0.5 en Y) para que ilumine el área alrededor
+          lightP[luzIndex].position = glm::vec3(0.0, nivelSuelo + 0.2, zPos);
+          luzIndex++;
+      }
    }
 
-   // --------------------------------------------------------------------------
    // 4. SUCIEDAD
-   // --------------------------------------------------------------------------
    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, Suciedad);
