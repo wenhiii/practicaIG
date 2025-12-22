@@ -72,7 +72,10 @@ Texture imgRedGlass;
 // Imagenes TEXTURA ESCENARIO
 Texture imgRuby;
 
-Texture imgAxiomFloor;
+Texture imgAxiomFloor;  // Imagen de color (ya la tenías)
+Texture imgFloorNormal; // <--- [NUEVO] Para el relieve
+Texture imgFloorSpec;   // <--- [NUEVO] Para el brillo (blanco y negro)
+
 Texture imgAxiomWall;
 Texture imgGuideLine;
 Texture imgWallNormal;
@@ -247,7 +250,16 @@ void configScene()
    imgRedGlass.initTexture("resources/textures/redGlass.png");
 
    // [NUEVO] Cargamos texturas para el escenario (reutilizamos las existentes si no tienes nuevas)
-   imgAxiomFloor.initTexture("resources/textures/texturaXD.jpg!d");
+   // 1. Albedo (Color) -> imgAxiomFloor
+   imgAxiomFloor.initTexture("resources/textures/Scifi_Hex_Wall_Difusse.jpg");
+
+   // 2. Normal (Relieve) -> imgFloorNormal
+   imgFloorNormal.initTexture("resources/textures/Scifi_Hex_Wall_normal.jpg");
+
+   // 3. Specular (Mapa de Brillo) -> imgFloorSpec
+   imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
+
+
    imgAxiomWall.initTexture("resources/textures/paredXD.jpg");
    imgGuideLine.initTexture("resources/textures/XD.jpg");
 
@@ -382,11 +394,14 @@ void configScene()
    texRedGlass.shininess = 128.0;
 
    // 1. Suelo
-   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
-   texAxiomFloor.specular = imgAxiomFloor.getTexture();
+   // 1. Suelo
+   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();   // Tu imagen Albedo
+   texAxiomFloor.specular = imgFloorSpec.getTexture();   // Tu imagen Specular (¡Importante!)
    texAxiomFloor.emissive = imgNoEmissive.getTexture();
-   texAxiomFloor.normal = 0;
-   texAxiomFloor.shininess = 100.0;
+   texAxiomFloor.normal = imgFloorNormal.getTexture();   // Tu imagen Normal (¡Importante!)
+
+   // Como tienes un mapa specular, subimos el brillo para que el metal resalte
+   texAxiomFloor.shininess = 128.0;
 
    // 2. Paredes
    texAxiomWall.diffuse = imgAxiomWall.getTexture();
@@ -949,9 +964,28 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
    // --------------------------------------------------------------------------
    // 1. EL SUELO
    // --------------------------------------------------------------------------
-   glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(0.0, nivelSuelo, 0.0))
-                         * glm::scale(I, glm::vec3(anchoPasillo, 1.0, 40.0));
-   drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+   // Tu OBJ mide 2. Multiplicamos por 5 para tener baldosas de 10x10 metros.
+   float escala = 5.0f;
+
+   // Bucle Z: 4 filas a lo largo del pasillo
+   for (int i = 0; i < 4; i++)
+   {
+      // Calculamos la posición Z (-15, -5, 5, 15)
+      float zPos = -15.0f + (i * 10.0f);
+
+      // Bucle X: 2 columnas a lo ancho (Izquierda y Derecha)
+      for (int j = 0; j < 2; j++)
+      {
+         // Si j=0 (izquierda) -> ponemos en -5.0
+         // Si j=1 (derecha)   -> ponemos en +5.0
+         float xPos = (j == 0) ? -5.0f : 5.0f;
+
+         glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
+                               * glm::scale(I, glm::vec3(escala, 1.0, escala));
+
+         drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+      }
+   }
 
    // --------------------------------------------------------------------------
    // 2. LÍNEA DE GUÍA CENTRAL
