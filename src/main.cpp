@@ -84,6 +84,15 @@ Texture imgAxiomWall_Roughness; // Se usará para el slot 'specular'
 // Texture imgAxiomWall_Metallic; // Metallic
 // Texture imgAxiomWall_Height;   // Height / Displacement
 
+Texture imgCeiling_Color;
+Texture imgCeiling_Normal;
+Texture imgCeiling_Roughness;
+Texture imgCeiling_AO; // Opcional si quieres usarla
+
+Texture imgOrganic_Albedo;
+Texture imgOrganic_Normal;
+Texture imgOrganic_Roughness;
+
 // Luces y materiales
 #define NLD 1
 #define NLP 50
@@ -102,6 +111,8 @@ Textures texAxiomWall;
 Textures texGuideLine;
 Textures texZocaloLed;
 Textures texRuby;
+Textures texCeiling;
+Textures texOrganicWall;
 
 Textures texWhiteMetal;
 Textures texGreyMetal;
@@ -268,6 +279,16 @@ void configScene()
    // imgAxiomWall_Metallic.initTexture("resources/textures/scifi_panel_1_metallic_4k.png");
    // imgAxiomWall_Height.initTexture("resources/textures/scifi_panel_1_height_4k.png");
 
+   imgCeiling_Color.initTexture("resources/textures/floor_tile_1_color.png");
+   imgCeiling_Normal.initTexture("resources/textures/floor_tile_1_normal.png");
+   imgCeiling_Roughness.initTexture("resources/textures/floor_tile_1_roughness.png");
+   // imgCeiling_AO.initTexture("resources/textures/floor_tile_1_ao.png"); // Opcional
+
+   imgOrganic_Albedo.initTexture("resources/textures/organic_tech_1_color_1k.png");
+   imgOrganic_Normal.initTexture("resources/textures/organic_tech_1_normal_1k.png");
+   // Usamos el mapa de roughness para controlar el brillo especular
+   imgOrganic_Roughness.initTexture("resources/textures/organic_tech_1_roughness_1k.png");
+
    // Configuracion texturas materiales
    texZocaloLed.diffuse  = imgWhiteMetal.getTexture();
    texZocaloLed.specular = imgWhiteMetal.getTexture();
@@ -409,6 +430,19 @@ void configScene()
    // Puedes necesitar ajustar el shininess dependiendo de cómo interprete tu shader el mapa de roughness.
    // Si se ve muy brillante, prueba a bajarlo (ej. 10.0). Si se ve muy mate, súbelo.
    texAxiomWall.shininess = 50.0;
+
+   texCeiling.diffuse  = imgCeiling_Color.getTexture();
+   texCeiling.specular = imgCeiling_Roughness.getTexture(); // Usamos roughness para el brillo
+   texCeiling.emissive = imgNoEmissive.getTexture();        // Sin luz propia
+   texCeiling.normal   = imgCeiling_Normal.getTexture();
+   texCeiling.shininess = 30.0; // Ajustable según qué tan brillante quieras el azulejo
+
+   texOrganicWall.diffuse  = imgOrganic_Albedo.getTexture();
+   texOrganicWall.specular = imgOrganic_Roughness.getTexture(); // Roughness en el slot specular
+   texOrganicWall.emissive = imgNoEmissive.getTexture();
+   texOrganicWall.normal   = imgOrganic_Normal.getTexture();
+   // Ajustamos el brillo. Un valor medio-alto suele ir bien para este tipo de paneles.
+   texOrganicWall.shininess = 64.0;
 
 
 
@@ -1000,4 +1034,66 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, Suciedad);
+
+
+
+
+
+
+
+
+
+
+
+   float nivelTecho = 10.0f;
+
+   // Usamos el mismo bucle que el suelo para garantizar "el mismo tamaño"
+   for (int i = 0; i < 5; i++) {
+      float zPos = -20.0f + (i * 10.0f);
+      for (int j = 0; j < 2; j++) {
+         float xPos = (j == 0) ? -5.0f : 5.0f;
+
+         // 1. Trasladamos a la posición (x, nivelTecho, z)
+         // 2. Rotamos 180 grados en X para que la textura mire hacia abajo
+         // 3. Escalamos igual que el suelo
+         glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
+                               * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
+                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
+
+         drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
+      }
+   }
+
+
+
+
+
+
+   // ---------------------------------------------------------
+   // 5. NUEVO (CORREGIDO V2): PAREDES DE FONDO Y FRENTE
+   // ---------------------------------------------------------
+   // Usamos las texturas "Organic Tech"
+
+   // --- CÁLCULO DE DIMENSIONES (Igual que antes) ---
+   // Scale X = 10.5f (para ancho total 21.0)
+   // Scale Y = 6.0f  (para altura total 12.0)
+   // Scale Z = 0.5f  (para grosor total 1.0)
+   glm::vec3 escalaParedesCierre = glm::vec3(10.5f, escalaParedY, 0.5f);
+
+   // --- 5.1 PARED TRASERA (FONDO) ---
+   // El suelo empieza físicamente en Z = -25.0.
+   // Ponemos el centro de la pared en -26.0 para que quede justo detrás.
+   glm::vec3 posFondo = glm::vec3(0.0f, yCentroPared, -25.0f); // <--- CAMBIO AQUÍ
+   glm::mat4 M_Fondo = glm::translate(I, posFondo) * glm::scale(I, escalaParedesCierre);
+   drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
+
+
+   // --- 5.2 PARED DELANTERA (FRENTE) ---
+   // El suelo termina físicamente en Z = +25.0.
+   // Ponemos el centro de la pared en +26.0 para que quede justo delante.
+   glm::vec3 posFrente = glm::vec3(0.0f, yCentroPared, 25.0f); // <--- CAMBIO AQUÍ
+   glm::mat4 M_Frente = glm::translate(I, posFrente)
+                      * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
+                      * glm::scale(I, escalaParedesCierre);
+   drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
 }
