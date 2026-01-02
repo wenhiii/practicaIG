@@ -4,9 +4,13 @@
 #include "Shaders.h"
 #include "Model.h"
 #include "Texture.h"
+#include <algorithm>
 
 void configScene();
 void renderScene();
+void animacionWavePared();
+void animacionHyperScanner();
+void animacionDiagonalParedes();
 void setLights(glm::mat4 P, glm::mat4 V);
 void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M);
@@ -470,6 +474,9 @@ void renderScene()
 
    levantarSirena();
    movimientoMO();
+   //animacionWavePared();
+   animacionHyperScanner();
+   animacionDiagonalParedes();
 
    float velocidadGiro = 2.0f;
    if (giroIzq) anguloGiro += velocidadGiro;
@@ -1096,4 +1103,237 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
                       * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
                       * glm::scale(I, escalaParedesCierre);
    drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
+}
+
+void animacionWavePared()
+{
+   // Obtenemos el tiempo actual para generar el movimiento continuo
+   float tiempo = glfwGetTime();
+   float velocidad = 2.0f; // Ajusta la velocidad del "escaneo"
+
+   // Calculamos la posición Z oscilando entre el inicio y fin del pasillo (-25 a 25)
+   float zPos = sin(tiempo * velocidad) * 25.0f;
+
+   // --- LUZ OLA IZQUIERDA (Usamos un índice libre, ej: lightP[10]) ---
+   // Posición: Pegada a la pared izquierda (X = -10 aprox)
+   lightP[10].position = glm::vec3(-9.0f, 4.0f, zPos);
+   lightP[10].diffuse = glm::vec3(0.0f, 1.0f, 1.0f);   // Color CYAN (puedes cambiarlo)
+   lightP[10].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+   lightP[10].ambient = glm::vec3(0.0f, 0.0f, 0.0f);   // Sin ambiente para que sea oscuro alrededor
+
+   // ATENUACIÓN "LASER" (Muy concentrada)
+   lightP[10].c0 = 1.0f;
+   lightP[10].c1 = 0.1f;
+   lightP[10].c2 = 1.5f; // Valor alto = La luz no llega al suelo, solo toca la pared cercana
+
+   // --- LUZ OLA DERECHA (Usamos lightP[11]) ---
+   // Posición: Pegada a la pared derecha (X = 10 aprox)
+   lightP[11].position = glm::vec3(9.0f, 4.0f, zPos);
+   lightP[11].diffuse = glm::vec3(0.0f, 1.0f, 1.0f);   // Mismo color
+   lightP[11].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+   lightP[11].ambient = glm::vec3(0.0f, 0.0f, 0.0f);
+
+   lightP[11].c0 = 1.0f;
+   lightP[11].c1 = 0.1f;
+   lightP[11].c2 = 1.5f; // Misma atenuación fuerte
+}
+
+void animacionHyperScanner()
+{
+    float t = glfwGetTime();
+
+    // --- CORRECCIÓN DE POSICIÓN ---
+    // Si tu pared del fondo la pusiste en Z = -26.0 (según corregimos antes),
+    // ponemos la luz en -24.0. (2 metros de distancia es seguro).
+    float zLuz = -24.0f;
+
+    // Límites de movimiento en X
+    float amplitud = 9.0f;
+
+    // --- CORRECCIÓN DE ÍNDICES ---
+    // Usamos luces bajas (1 al 10) para evitar limites del shader.
+    // La luz 0 es la del techo/ambiente, esa no la tocamos.
+    int baseIndex = 1;
+
+    // ---------------------------------------------------------
+    // BARRA 1: CYAN (Izquierda -> Derecha)
+    // ---------------------------------------------------------
+    float xPos1 = sin(t * 1.5f) * amplitud;
+
+    for(int i = 0; i < 5; i++) {
+        int idx = baseIndex + i; // Luces 1, 2, 3, 4, 5
+
+        // Estiramos más la barra verticalmente (de -2 a +10)
+        float yPos = -2.0f + (i * 3.0f);
+
+        lightP[idx].position = glm::vec3(xPos1, yPos, zLuz);
+
+        // POTENCIA AUMENTADA (Valores > 1.0 hacen que brille más)
+        lightP[idx].diffuse  = glm::vec3(0.0f, 2.0f, 5.0f); // Cyan muy fuerte
+        lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+        lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        // --- CORRECCIÓN DE ATENUACIÓN ---
+        // c2 bajo (0.1) = la luz llega muy lejos.
+        // c2 alto (4.0) = la luz muere enseguida.
+        // Lo bajamos a 0.2 para asegurar que se vea la mancha en la pared.
+        lightP[idx].c0 = 1.0f;
+        lightP[idx].c1 = 0.1f;
+        lightP[idx].c2 = 0.2f;
+    }
+
+    // ---------------------------------------------------------
+    // BARRA 2: MAGENTA (Derecha -> Izquierda)
+    // ---------------------------------------------------------
+    float xPos2 = cos(t * 2.2f) * amplitud;
+
+    for(int i = 0; i < 5; i++) {
+        int idx = baseIndex + 5 + i; // Luces 6, 7, 8, 9, 10
+
+        float yPos = -1.0f + (i * 3.0f);
+
+        lightP[idx].position = glm::vec3(xPos2, yPos, zLuz);
+
+        // Magenta Potente
+        lightP[idx].diffuse  = glm::vec3(5.0f, 0.0f, 4.0f);
+        lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+        lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        // Misma atenuación segura
+        lightP[idx].c0 = 1.0f;
+        lightP[idx].c1 = 0.1f;
+        lightP[idx].c2 = 0.2f;
+    }
+}
+
+void animacionDiagonalParedes()
+{float t = glfwGetTime();
+
+    // --- CONFIGURACIÓN DEL CAOS ---
+    float velocidad = 25.0f;       // Velocidad absurda
+    float paredX = 9.2f;           // Posición X
+
+    // Frecuencia de la onda eléctrica (cuántas "S" hace el rayo)
+    float frecuenciaOnda = 0.5f;
+    // Amplitud de la onda (cuánto se separa de la diagonal central)
+    float amplitudOnda = 1.5f;
+
+    // Colores base para la interpolación (RGB)
+    glm::vec3 cFrio = glm::vec3(0.0f, 1.0f, 1.0f); // Cyan
+    glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f); // Violeta
+    glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f); // Rojo Fuego
+
+    // -------------------------------------------------------------------------
+    // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente)
+    // -------------------------------------------------------------------------
+    // Usamos luces 10 a 24 (15 luces formando una serpiente larga)
+    int lucesSerpiente = 15;
+    int baseIdx = 10;
+
+    for(int i = 0; i < lucesSerpiente; i++)
+    {
+        int idx = baseIdx + i;
+
+        // El "Time Lag" crea la forma de serpiente.
+        // Si el lag es pequeño, parece un láser sólido. Si es alto, son bolas separadas.
+        float lag = i * 0.4f;
+
+        // Posición Z Cíclica
+        float ciclo = fmod((t * velocidad) - lag, 70.0f); // 70 metros de recorrido virtual
+        float zActual = -30.0f + ciclo; // Empieza antes del pasillo, termina después
+
+        // Si se sale del rango visible, apagar (optimización visual)
+        if(zActual > 30.0f || zActual < -30.0f) {
+            lightP[idx].diffuse = glm::vec3(0.0f);
+            continue;
+        }
+
+        // --- LA MATEMÁTICA "GOD MODE" ---
+        // 1. Diagonal Base: Sube de Y=0 a Y=10 a medida que avanza en Z
+        float yBase = 5.0f + (zActual / 5.0f);
+
+        // 2. Interferencia Eléctrica: Añadimos una onda senoidal que se mueve
+        // 't * 10.0f' hace que la onda vibre aunque el rayo esté quieto
+        float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * amplitudOnda;
+
+        float yFinal = yBase + ruidoElectrico;
+
+        // Posicionar
+        lightP[idx].position = glm::vec3(-paredX, yFinal, zActual);
+
+        // --- COLORIMETRÍA DINÁMICA ---
+        // Calculamos "calor" de 0.0 a 1.0 basado en lo lejos que ha llegado (Z)
+        float calor = (zActual + 25.0f) / 50.0f; // 0.0 al inicio, 1.0 al final
+        calor = glm::clamp(calor, 0.0f, 1.0f);
+
+        glm::vec3 colorFinal;
+        if(calor < 0.5f) {
+            // Mezcla Frío -> Medio
+            float mezcla = calor * 2.0f;
+            colorFinal = glm::mix(cFrio, cMedio, mezcla);
+        } else {
+            // Mezcla Medio -> Caliente
+            float mezcla = (calor - 0.5f) * 2.0f;
+            colorFinal = glm::mix(cMedio, cCaliente, mezcla);
+        }
+
+        // --- EFECTO ESTROBOSCÓPICO ---
+        // Hacemos que la intensidad parpadee violentamente
+        float estrobo = (sin(t * 60.0f + i) > 0.0f) ? 2.0f : 0.8f;
+
+        // Las primeras luces (la cabeza) brillan más blanco (núcleo de plasma)
+        if (i < 3) {
+             lightP[idx].diffuse = glm::vec3(1.0f, 1.0f, 1.0f) * 5.0f; // BLANCO NUCLEAR
+             lightP[idx].c2 = 0.5f; // Muy concentrado
+        } else {
+             lightP[idx].diffuse = colorFinal * estrobo;
+             lightP[idx].c2 = 1.0f;
+        }
+
+        lightP[idx].specular = glm::vec3(1.0f);
+        lightP[idx].ambient = glm::vec3(0.0f);
+        lightP[idx].c0 = 1.0f; lightP[idx].c1 = 0.1f;
+    }
+
+    // -------------------------------------------------------------------------
+    // GRUPO 2: PARED DERECHA (Lluvia de Datos Matrix/Hacker)
+    // -------------------------------------------------------------------------
+    // A la derecha haremos algo distinto: "Lluvia Digital" rápida hacia abajo y atrás
+    // Luces 25 a 40
+    int baseIdxDer = 25;
+    int lucesLluvia = 15;
+
+    for(int i = 0; i < lucesLluvia; i++)
+    {
+        int idx = baseIdxDer + i;
+
+        // Cada gota de luz tiene una velocidad aleatoria simulada usando 'i'
+        float velocidadGota = velocidad * (1.0f + (i % 3) * 0.5f);
+
+        float ciclo = fmod((t * velocidadGota) + (i * 10.0f), 60.0f);
+        float zActual = 30.0f - ciclo; // Va hacia atrás (Z positivo a negativo)
+
+        // Diagonal Inversa con "Glitch" (saltos)
+        // Usamos 'floor' en el tiempo para que la posición Y salte a veces
+        float glitchY = (sin(t * 20.0f + i) > 0.9f) ? 1.0f : 0.0f; // Salto repentino
+        float yActual = 12.0f - (ciclo * 0.3f) + glitchY;
+
+        lightP[idx].position = glm::vec3(paredX, yActual, zActual);
+
+        // COLOR VERDE HACKER CORRUPTO
+        // Verde intenso con destellos rosados ocasionales (corrupción de datos)
+        bool corrupto = (sin(t * 40.0f + i) > 0.95f);
+
+        if (corrupto) {
+            lightP[idx].diffuse = glm::vec3(1.0f, 0.0f, 1.0f) * 5.0f; // MAGENTA FUERTE
+            lightP[idx].c2 = 0.2f; // Explota visualmente
+        } else {
+            lightP[idx].diffuse = glm::vec3(0.0f, 1.5f, 0.2f); // VERDE MATRIX
+            lightP[idx].c2 = 0.8f;
+        }
+
+        lightP[idx].specular = glm::vec3(1.0f);
+        lightP[idx].ambient = glm::vec3(0.0f);
+        lightP[idx].c0 = 1.0f; lightP[idx].c1 = 0.1f;
+    }
 }
