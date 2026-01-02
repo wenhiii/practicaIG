@@ -67,20 +67,14 @@ Texture imgBlackRubber;
 Texture imgBlueGlass;
 Texture imgRedGlass;
 
-
-
 // Imagenes TEXTURA ESCENARIO
 Texture imgRuby;
-
-Texture imgAxiomFloor;  // Imagen de color (ya la tenías)
-Texture imgFloorNormal; // <--- [NUEVO] Para el relieve
-Texture imgFloorSpec;   // <--- [NUEVO] Para el brillo (blanco y negro)
-
+Texture imgAxiomFloor;
+Texture imgFloorNormal;
+Texture imgFloorSpec;
 Texture imgAxiomWall;
 Texture imgGuideLine;
 Texture imgWallNormal;
-
-// FIN Imagenes TEXTURA ESCENARIO
 
 // Luces y materiales
 #define NLD 1
@@ -100,7 +94,6 @@ Textures texAxiomWall;
 Textures texGuideLine;
 Textures texZocaloLed;
 Textures texRuby;
-// FIN TEXTURA ESCENARIO
 
 Textures texWhiteMetal;
 Textures texGreyMetal;
@@ -110,17 +103,25 @@ Textures texBlueGlass;
 Textures texRedGlass;
 
 //  Ancho del pasillo
-
 float anchoPasillo = 10.0f;
 
 // Viewport
 int w = 500;
 int h = 500;
 
-// Movimiento de camara (Ratón)
+// --------------------------------------------------------
+// VARIABLES DE CAMARA (FPS / LIBRE)
+// --------------------------------------------------------
 float fovy = 60.0;
-float alphaX = 0.0;
-float alphaY = 0.0;
+
+// [CAMBIO] Iniciamos alphaX en -90 para mirar hacia -Z
+float alphaX = -90.0f;
+float alphaY = 0.0f;
+
+// [NUEVO] Vectores para cámara libre
+glm::vec3 cameraPos   = glm::vec3(0.0f, 2.0f, 15.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
 double lastX = 0.0;
 double lastY = 0.0;
@@ -150,10 +151,8 @@ bool movD = false;
 
 int main()
 {
-
    // Inicializamos GLFW
-   if (!glfwInit())
-      return -1;
+   if (!glfwInit()) return -1;
    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -161,7 +160,7 @@ int main()
 
    // Creamos la ventana
    GLFWwindow *window;
-   window = glfwCreateWindow(w, h, "Sesion 7", NULL, NULL);
+   window = glfwCreateWindow(w, h, "Sesion 7 - Camara Libre", NULL, NULL);
    if (!window)
    {
       glfwTerminate();
@@ -204,7 +203,6 @@ int main()
 
 void configScene()
 {
-
    // Test de profundidad
    glEnable(GL_DEPTH_TEST);
 
@@ -240,9 +238,7 @@ void configScene()
 
    // Imagenes (texturas)
    imgNoEmissive.initTexture("resources/textures/imgNoEmissive.png");
-
    imgRuby.initTexture("resources/textures/imgRuby.png");
-
    imgWhiteMetal.initTexture("resources/textures/whiteMetal.jpg");
    imgGreyMetal.initTexture("resources/textures/greyMetal.jpg");
    imgBlackMetal.initTexture("resources/textures/blackMetal.jpg");
@@ -250,35 +246,20 @@ void configScene()
    imgBlueGlass.initTexture("resources/textures/blueGlass.png");
    imgRedGlass.initTexture("resources/textures/redGlass.png");
 
-   // [NUEVO] Cargamos texturas para el escenario (reutilizamos las existentes si no tienes nuevas)
-   // 1. Albedo (Color) -> imgAxiomFloor
+   // Texturas escenario
    imgAxiomFloor.initTexture("resources/textures/Scifi_Hex_Wall_Difusse.jpg");
-
-   // 2. Normal (Relieve) -> imgFloorNormal
    imgFloorNormal.initTexture("resources/textures/Scifi_Hex_Wall_normal.jpg");
-
-   // 3. Specular (Mapa de Brillo) -> imgFloorSpec
    imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
-
-
    imgAxiomWall.initTexture("resources/textures/paredXD.jpg");
    imgGuideLine.initTexture("resources/textures/XD.jpg");
-
    imgWallNormal.initTexture("resources/textures/imgWallNormal.png");
-   imgRuby.initTexture("resources/textures/imgRuby.png");
 
-   texZocaloLed.diffuse  = imgWhiteMetal.getTexture(); // La base es blanca/gris con ruido
-   texZocaloLed.specular = imgWhiteMetal.getTexture(); // Brilla si le da luz
-
-   // AQUÍ ESTÁ EL TRUCO: Usamos la textura para emitir luz.
-   // Al no ser un color sólido, tendrá "manchas" de luz más oscuras y claras.
+   // Configuracion texturas materiales
+   texZocaloLed.diffuse  = imgWhiteMetal.getTexture();
+   texZocaloLed.specular = imgWhiteMetal.getTexture();
    texZocaloLed.emissive = imgWhiteMetal.getTexture();
-
-   // TRUCO PRO: Le ponemos relieve de pared para que parezca cristal rugoso
    texZocaloLed.normal   = imgWallNormal.getTexture();
-
    texZocaloLed.shininess = 64.0;
-
 
    // Luz ambiental global
    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
@@ -289,91 +270,55 @@ void configScene()
    lightD[0].diffuse = glm::vec3(0.7, 0.7, 0.7);
    lightD[0].specular = glm::vec3(0.7, 0.7, 0.7);
 
-   // Luces posicionales (Luz cenital del pasillo)
+   // Luces posicionales
    lightP[0].position = glm::vec3(0.0, 4.0, 0.0);
    lightP[0].ambient = glm::vec3(0.2, 0.2, 0.2);
    lightP[0].diffuse = glm::vec3(0.9, 0.95, 1.0);
    lightP[0].specular = glm::vec3(1.0, 1.0, 1.0);
-   lightP[0].c0 = 1.00;
-   lightP[0].c1 = 0.09;
-   lightP[0].c2 = 0.032;
+   lightP[0].c0 = 1.00; lightP[0].c1 = 0.09; lightP[0].c2 = 0.032;
 
    for(int i = 1; i < NLP; i++) {
-      lightP[i].ambient = glm::vec3(0.0, 0.0, 0.0); // Sin ambiente para más contraste
-
-      // Color Azul Cyan estilo TRON
+      lightP[i].ambient = glm::vec3(0.0, 0.0, 0.0);
       lightP[i].diffuse = glm::vec3(0.0, 0.8, 1.0);
       lightP[i].specular = glm::vec3(0.0, 0.0, 0.0);
-
-      // ATENUACIÓN: Fundamental para tener muchas luces
-      // Usamos una caída rápida (c2 alto) para que la luz se quede cerca del zócalo
-      lightP[i].c0 = 1.0;
-      lightP[i].c1 = 0.5;
-      lightP[i].c2 = 0.8;
+      lightP[i].c0 = 1.0; lightP[i].c1 = 0.5; lightP[i].c2 = 0.8;
    }
 
-   // Luces focales
+   // Luces focales (Axiom + Ojos + Sirena)
    lightF[0].position = glm::vec3(-2.0, 2.0, 5.0);
    lightF[0].direction = glm::vec3(2.0, -2.0, -5.0);
    lightF[0].ambient = glm::vec3(0.2, 0.2, 0.2);
    lightF[0].diffuse = glm::vec3(0.9, 0.9, 0.9);
    lightF[0].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[0].innerCutOff = 10.0;
-   lightF[0].outerCutOff = lightF[0].innerCutOff + 5.0;
-   lightF[0].c0 = 1.000;
-   lightF[0].c1 = 0.090;
-   lightF[0].c2 = 0.032;
+   lightF[0].innerCutOff = 10.0; lightF[0].outerCutOff = 15.0;
+   lightF[0].c0 = 1.0; lightF[0].c1 = 0.09; lightF[0].c2 = 0.032;
 
    lightF[1].position = glm::vec3(2.0, 2.0, 5.0);
    lightF[1].direction = glm::vec3(-2.0, -2.0, -5.0);
    lightF[1].ambient = glm::vec3(0.2, 0.2, 0.2);
    lightF[1].diffuse = glm::vec3(0.9, 0.9, 0.9);
    lightF[1].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[1].innerCutOff = 5.0;
-   lightF[1].outerCutOff = lightF[1].innerCutOff + 1.0;
-   lightF[1].c0 = 1.000;
-   lightF[1].c1 = 0.090;
-   lightF[1].c2 = 0.032;
+   lightF[1].innerCutOff = 5.0; lightF[1].outerCutOff = 6.0;
+   lightF[1].c0 = 1.0; lightF[1].c1 = 0.09; lightF[1].c2 = 0.032;
 
-   // Luces Ojos M-O
-   lightF[2].ambient = glm::vec3(0.0, 0.0, 0.0);
-   lightF[2].diffuse = glm::vec3(0.8, 0.7, 0.2);
-   lightF[2].specular = glm::vec3(0.8, 0.7, 0.2);
-   lightF[2].innerCutOff = 15.0;
-   lightF[2].outerCutOff = lightF[2].innerCutOff + 10.0;
-   lightF[2].c0 = 1.000;
-   lightF[2].c1 = 0.090;
-   lightF[2].c2 = 0.032;
+   // Ojos
+   for(int i=2; i<=3; i++){
+       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
+       lightF[i].diffuse = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].specular = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].innerCutOff = 15.0; lightF[i].outerCutOff = 25.0;
+       lightF[i].c0 = 1.0; lightF[i].c1 = 0.09; lightF[i].c2 = 0.032;
+   }
+   // Sirena
+   for(int i=4; i<=5; i++){
+       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
+       lightF[i].diffuse = glm::vec3(0.9, 0.9, 0.9);
+       lightF[i].specular = glm::vec3(0.9, 0.9, 0.9);
+       lightF[i].innerCutOff = 20.0; lightF[i].outerCutOff = 30.0;
+       lightF[i].c0 = 1.0; lightF[i].c1 = 0.09; lightF[i].c2 = 0.032;
+   }
 
-   lightF[3].ambient = glm::vec3(0.0, 0.0, 0.0);
-   lightF[3].diffuse = glm::vec3(0.8, 0.7, 0.2);
-   lightF[3].specular = glm::vec3(0.8, 0.7, 0.2);
-   lightF[3].innerCutOff = 15.0;
-   lightF[3].outerCutOff = lightF[3].innerCutOff + 10.0;
-   lightF[3].c0 = 1.000;
-   lightF[3].c1 = 0.090;
-   lightF[3].c2 = 0.032;
-
-   // Luces Sirena M-O
-   lightF[4].ambient = glm::vec3(0.0, 0.0, 0.0);
-   lightF[4].diffuse = glm::vec3(0.9, 0.9, 0.9);
-   lightF[4].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[4].innerCutOff = 20.0;
-   lightF[4].outerCutOff = 30.0;
-   lightF[4].c0 = 1.0;
-   lightF[4].c1 = 0.09;
-   lightF[4].c2 = 0.032;
-
-   lightF[5].ambient = glm::vec3(0.0, 0.0, 0.0);
-   lightF[5].diffuse = glm::vec3(0.9, 0.9, 0.9);
-   lightF[5].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[5].innerCutOff = 20.0;
-   lightF[5].outerCutOff = 30.0;
-   lightF[5].c0 = 1.0;
-   lightF[5].c1 = 0.09;
-   lightF[5].c2 = 0.032;
-
-   // Materiales existentes
+   // Materiales
    mluz.ambient = glm::vec4(0.0, 0.0, 0.0, 1.0);
    mluz.diffuse = glm::vec4(0.0, 0.0, 0.0, 1.0);
    mluz.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
@@ -386,20 +331,13 @@ void configScene()
    mOjo.emissive = glm::vec4(0.8, 0.7, 0.1, 1.0);
    mOjo.shininess = 0.75;
 
-   // Configuración del Material NEÓN (Azul Sci-Fi)
-   mNeon.ambient   = glm::vec4(0.0, 0.0, 0.0, 1.0); // Base oscura
-   mNeon.diffuse   = glm::vec4(0.0, 0.0, 0.0, 1.0); // No reacciona a la luz externa
-   mNeon.specular  = glm::vec4(1.0, 1.0, 1.0, 1.0); // Brillo blanco intenso (como cristal)
-
-   // EL SECRETO: Emissive es el color de la luz que emite
-   // Puedes cambiar estos números para cambiar el color:
-   // (0.0, 0.8, 1.0) = Azul Cyan (Tron)
-   // (1.0, 0.1, 0.0) = Rojo Alerta
-   // (1.0, 0.6, 0.0) = Naranja Industrial
+   mNeon.ambient   = glm::vec4(0.0, 0.0, 0.0, 1.0);
+   mNeon.diffuse   = glm::vec4(0.0, 0.0, 0.0, 1.0);
+   mNeon.specular  = glm::vec4(1.0, 1.0, 1.0, 1.0);
    mNeon.emissive  = glm::vec4(0.0, 0.9, 1.0, 1.0);
+   mNeon.shininess = 128.0;
 
-   mNeon.shininess = 128.0; // Muy brillante
-
+   // Asignar texturas a structs Textures
    texWhiteMetal.diffuse = imgWhiteMetal.getTexture();
    texWhiteMetal.specular = imgWhiteMetal.getTexture();
    texWhiteMetal.emissive = imgNoEmissive.getTexture();
@@ -436,27 +374,21 @@ void configScene()
    texRedGlass.normal = 0;
    texRedGlass.shininess = 128.0;
 
-   // 1. Suelo
-   // 1. Suelo
-   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();   // Tu imagen Albedo
-   texAxiomFloor.specular = imgFloorSpec.getTexture();   // Tu imagen Specular (¡Importante!)
+   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
+   texAxiomFloor.specular = imgFloorSpec.getTexture();
    texAxiomFloor.emissive = imgNoEmissive.getTexture();
-   texAxiomFloor.normal = imgFloorNormal.getTexture();   // Tu imagen Normal (¡Importante!)
-
-   // Como tienes un mapa specular, subimos el brillo para que el metal resalte
+   texAxiomFloor.normal = imgFloorNormal.getTexture();
    texAxiomFloor.shininess = 128.0;
 
-   // 2. Paredes
    texAxiomWall.diffuse = imgAxiomWall.getTexture();
    texAxiomWall.specular = imgAxiomWall.getTexture();
    texAxiomWall.emissive = imgNoEmissive.getTexture();
    texAxiomWall.normal = imgWallNormal.getTexture();
    texAxiomWall.shininess = 30.0;
 
-   // 3. Luces
    texGuideLine.diffuse = imgGuideLine.getTexture();
    texGuideLine.specular = imgGuideLine.getTexture();
-   texGuideLine.emissive = imgGuideLine.getTexture(); // Brilla
+   texGuideLine.emissive = imgGuideLine.getTexture();
    texGuideLine.normal = 0;
    texGuideLine.shininess = 10.0;
 
@@ -480,17 +412,12 @@ void renderScene()
    movimientoMO();
 
    float velocidadGiro = 2.0f;
+   if (giroIzq) anguloGiro += velocidadGiro;
+   if (giroDer) anguloGiro -= velocidadGiro;
 
-   if (giroIzq)
-      anguloGiro += velocidadGiro; // Izquierda
-   if (giroDer)
-      anguloGiro -= velocidadGiro; // Derecha
-
-   // Borramos el buffer de color
    glClearColor(0.0, 0.0, 0.0, 0.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   // Indicamos los shaders a utilizar
    shaders.useShaders();
 
    // Matriz P
@@ -499,16 +426,22 @@ void renderScene()
    float aspect = (float)w / (float)h;
    glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, nplane, fplane);
 
-   // Matriz V
-   float x = 10.0f * glm::cos(glm::radians(alphaY)) * glm::sin(glm::radians(alphaX));
-   float y = 10.0f * glm::sin(glm::radians(alphaY));
-   float z = 10.0f * glm::cos(glm::radians(alphaY)) * glm::cos(glm::radians(alphaX));
-   glm::vec3 eye(x, y, z);
-   glm::vec3 center(0.0, 0.0, 0.0);
-   glm::vec3 up(0.0, 1.0, 0.0);
-   glm::mat4 V = glm::lookAt(eye, center, up);
-   shaders.setVec3("ueye", eye);
+   // -----------------------------------------------------------------------
+   // CÁLCULO DE CÁMARA LIBRE (FPS)
+   // -----------------------------------------------------------------------
+   // Calculamos el vector "front" en base a los ángulos del ratón
+   glm::vec3 front;
+   front.x = cos(glm::radians(alphaX)) * cos(glm::radians(alphaY));
+   front.y = sin(glm::radians(alphaY));
+   front.z = sin(glm::radians(alphaX)) * cos(glm::radians(alphaY));
+   cameraFront = glm::normalize(front);
 
+   // Matriz V (LookAt: desde Posicion, mirando a Posicion+Frente)
+   glm::mat4 V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+   // Actualizamos la posición del ojo para los shaders (brillos especulares)
+   shaders.setVec3("ueye", cameraPos);
+   // -----------------------------------------------------------------------
 
    glm::mat4 T = glm::translate(I, glm::vec3(posX, 0.0, posZ));
    glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
@@ -519,15 +452,12 @@ void renderScene()
    // Fijamos las luces
    setLights(P, V);
 
-
    dibujarEscenario(P, V);
-      drawMO(P, V, S * T * R);
-
+   drawMO(P, V, S * T * R);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
 {
-
    shaders.setLight("ulightG", lightG);
    for (int i = 0; i < NLD; i++)
       shaders.setLight("ulightD[" + toString(i) + "]", lightD[i]);
@@ -551,7 +481,6 @@ void setLights(glm::mat4 P, glm::mat4 V)
 
 void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-
    shaders.setMat4("uN", glm::transpose(glm::inverse(M)));
    shaders.setMat4("uM", M);
    shaders.setMat4("uPVM", P * V * M);
@@ -562,7 +491,6 @@ void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, gl
 
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-
    shaders.setMat4("uN", glm::transpose(glm::inverse(M)));
    shaders.setMat4("uM", M);
    shaders.setMat4("uPVM", P * V * M);
@@ -577,98 +505,93 @@ void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, gl
 
 void funFramebufferSize(GLFWwindow *window, int width, int height)
 {
-
-   // Configuracion del Viewport
    glViewport(0, 0, width, height);
-
-   // Actualizacion de w y h
    w = width;
    h = height;
 }
 
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+   float cameraSpeed = 1.0f; // Velocidad de movimiento de la cámara
+
    switch (key)
    {
+   // --- CONTROLES CÁMARA LIBRE (FLECHAS) ---
+   case GLFW_KEY_UP:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+         cameraPos += cameraSpeed * cameraFront;
+      break;
+
+   case GLFW_KEY_DOWN:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+         cameraPos -= cameraSpeed * cameraFront;
+      break;
+
+   case GLFW_KEY_LEFT:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+         // Producto cruz normalizado para moverse lateralmente (Strafe)
+         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+      break;
+
+   case GLFW_KEY_RIGHT:
+      if (action == GLFW_PRESS || action == GLFW_REPEAT)
+         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+      break;
+   // -----------------------------------------
+
    case GLFW_KEY_G:
-      if (action == GLFW_PRESS)
-      {
-         animacionActiva = !animacionActiva;
-      }
+      if (action == GLFW_PRESS) animacionActiva = !animacionActiva;
       break;
 
    case GLFW_KEY_F:
-      if (action == GLFW_PRESS || action == GLFW_REPEAT)
-      {
+      if (action == GLFW_PRESS || action == GLFW_REPEAT) {
          anguloBrazos += 2.0f;
-
-         if (anguloBrazos > 5.0f)
-            anguloBrazos = 5.0f;
+         if (anguloBrazos > 5.0f) anguloBrazos = 5.0f;
       }
       break;
 
    case GLFW_KEY_R:
-      if (action == GLFW_PRESS || action == GLFW_REPEAT)
-      {
+      if (action == GLFW_PRESS || action == GLFW_REPEAT) {
          anguloBrazos -= 2.0f;
-
-         if (anguloBrazos < -10.0f)
-            anguloBrazos = -10.0f;
+         if (anguloBrazos < -10.0f) anguloBrazos = -10.0f;
       }
       break;
    case GLFW_KEY_Y:
-      if (action == GLFW_PRESS)
-      {
-         sirenaLevantada = !sirenaLevantada;
-      }
-      break;
-   case GLFW_KEY_Q:
-      if (action == GLFW_PRESS)
-         giroIzq = true;
-      if (action == GLFW_RELEASE)
-         giroIzq = false;
+      if (action == GLFW_PRESS) sirenaLevantada = !sirenaLevantada;
       break;
 
+   // MOVIMIENTO ROBOT (WASD)
+   case GLFW_KEY_Q:
+      if (action == GLFW_PRESS) giroIzq = true;
+      if (action == GLFW_RELEASE) giroIzq = false;
+      break;
    case GLFW_KEY_E:
-      if (action == GLFW_PRESS)
-         giroDer = true;
-      if (action == GLFW_RELEASE)
-         giroDer = false;
+      if (action == GLFW_PRESS) giroDer = true;
+      if (action == GLFW_RELEASE) giroDer = false;
       break;
    case GLFW_KEY_W:
-      if (action == GLFW_PRESS)
-         movW = true;
-      if (action == GLFW_RELEASE)
-         movW = false;
+      if (action == GLFW_PRESS) movW = true;
+      if (action == GLFW_RELEASE) movW = false;
       break;
    case GLFW_KEY_S:
-      if (action == GLFW_PRESS)
-         movS = true;
-      if (action == GLFW_RELEASE)
-         movS = false;
+      if (action == GLFW_PRESS) movS = true;
+      if (action == GLFW_RELEASE) movS = false;
       break;
    case GLFW_KEY_A:
-      if (action == GLFW_PRESS)
-         movA = true;
-      if (action == GLFW_RELEASE)
-         movA = false;
+      if (action == GLFW_PRESS) movA = true;
+      if (action == GLFW_RELEASE) movA = false;
       break;
    case GLFW_KEY_D:
-      if (action == GLFW_PRESS)
-         movD = true;
-      if (action == GLFW_RELEASE)
-         movD = false;
+      if (action == GLFW_PRESS) movD = true;
+      if (action == GLFW_RELEASE) movD = false;
       break;
    }
 }
 
 void funScroll(GLFWwindow *window, double xoffset, double yoffset)
 {
-
-   if (yoffset > 0)
-      fovy -= fovy > 10.0f ? 5.0f : 0.0f;
-   if (yoffset < 0)
-      fovy += fovy < 90.0f ? 5.0f : 0.0f;
+   if (yoffset > 0) fovy -= fovy > 10.0f ? 5.0f : 0.0f;
+   if (yoffset < 0) fovy += fovy < 90.0f ? 5.0f : 0.0f;
 }
 
 void funCursorPos(GLFWwindow *window, double xpos, double ypos)
@@ -677,40 +600,31 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
       firstClick = true;
       return;
    }
-
-
    if (firstClick) {
       lastX = xpos;
       lastY = ypos;
       firstClick = false;
    }
-
    double xoffset = xpos - lastX;
    double yoffset = lastY - ypos;
-
    lastX = xpos;
    lastY = ypos;
-
 
    alphaX += xoffset * sensitivity;
    alphaY += yoffset * sensitivity;
 
+   // Limitamos la vista arriba/abajo para no dar la vuelta (Gimbal Lock)
    float limY = 89.0f;
-   if (alphaY > limY)
-      alphaY = limY;
-   if (alphaY < -limY)
-      alphaY = -limY;
+   if (alphaY > limY) alphaY = limY;
+   if (alphaY < -limY) alphaY = -limY;
 }
 
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::vec3 centro = glm::vec3(0.0f, 9.80f, -3.58f);
-
    glm::mat4 Tida = glm::translate(glm::mat4(1.0f), -centro);
-   
    glm::mat4 Rx = glm::rotate(I, glm::radians(inclinacionX), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Rz = glm::rotate(I, glm::radians(inclinacionZ), glm::vec3(0.0, 0.0, 1.0));
-
    glm::mat4 Tvuelta = glm::translate(glm::mat4(1.0f), centro);
 
    drawCuerpo(P, V, M * Tvuelta * Rz * Rx * Tida);
@@ -722,20 +636,16 @@ void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawObjectTex(cuerpo, texWhiteMetal, P, V, M);
-
    drawObjectTex(cubreRueda, texGreyMetal, P, V, M);
 
    glm::mat4 T = glm::translate(I, glm::vec3(1.0f, 55.24f, -7.86f));
    glm::mat4 S = glm::scale(I, glm::vec3(16.5f, 1.0f, 12.0f));
-
    drawObjectTex(plane, texWhiteMetal, P, V, M * T * S);
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glDepthMask(GL_FALSE);
-
    drawObjectTex(mochila, texBlueGlass, P, V, M);
-
    glDepthMask(GL_TRUE);
    glDisable(GL_BLEND);
 }
@@ -743,56 +653,41 @@ void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawObjectTex(cara, texBlackMetal, P, V, M);
-
    drawObjectTex(casco, texWhiteMetal, P, V, M);
-
    drawObjectTex(tapaCasco, texWhiteMetal, P, V, M);
-
    drawObjectTex(cuello, texGreyMetal, P, V, M);
-
    drawSirena(P, V, M);
 
    glm::mat4 R = glm::rotate(I, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 S = glm::scale(I, glm::vec3(6.0f, 1.0f, 1.2f));
    glm::mat4 T = glm::translate(I, glm::vec3(8.0f, 60.0f, 26.6f));
-
    drawObjectMat(plane, mOjo, P, V, M * T * R * S);
 
    T = glm::translate(I, glm::vec3(-8.0f, 60.0f, 26.6f));
-
    drawObjectMat(plane, mOjo, P, V, M * T * R * S);
-
 }
 
 void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::mat4 Televacion = glm::translate(I, glm::vec3(0.0, alturaSirena, 0.0));
-   
    drawObjectTex(tapaSirena, texWhiteMetal, P, V, M * Televacion);
 
-
    glm::vec3 centroCristal = glm::vec3(-1.13f, 101.94f, -4.40f);
-   
    float radioGiro = 2.5f;
-   
-   float escala = 1.0f; 
+   float escala = 1.0f;
 
-   glm::mat4 T_Centro = glm::translate(I, centroCristal); // Ir al centro del cristal
-   glm::mat4 T_Radio  = glm::translate(I, glm::vec3(radioGiro, 0.0, 0.0)); // Separarse
-   glm::mat4 S        = glm::scale(I, glm::vec3(escala)); // Hacerla pequeña
+   glm::mat4 T_Centro = glm::translate(I, centroCristal);
+   glm::mat4 T_Radio  = glm::translate(I, glm::vec3(radioGiro, 0.0, 0.0));
+   glm::mat4 S        = glm::scale(I, glm::vec3(escala));
 
    glm::mat4 R1 = glm::rotate(I, glm::radians(anguloSirena), glm::vec3(0.0, 1.0, 0.0));
-   
    glm::mat4 M_Pos1 = M * Televacion * T_Centro * R1 * T_Radio;
-   
-   drawObjectMat(sphere, mluz, P, V, M_Pos1 * S);
 
+   drawObjectMat(sphere, mluz, P, V, M_Pos1 * S);
    lightF[4].position  = glm::vec3(M_Pos1 * glm::vec4(0.0, 0.0, 0.0, 1.0));
    lightF[4].direction = glm::normalize(glm::vec3(M * Televacion * R1 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
 
-
    glm::mat4 R2 = glm::rotate(I, glm::radians(anguloSirena + 180.0f), glm::vec3(0.0, 1.0, 0.0));
-   
    glm::mat4 M_Pos2 = M * Televacion * T_Centro * R2 * T_Radio;
 
    drawObjectMat(sphere, mluz, P, V, M_Pos2 * S);
@@ -802,9 +697,7 @@ void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glDepthMask(GL_FALSE);
-
    drawObjectTex(cristalSirena, texRedGlass, P, V, M * Televacion);
-
    glDepthMask(GL_TRUE);
    glDisable(GL_BLEND);
 }
@@ -813,34 +706,26 @@ void drawBrazos(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawBrazoDer(P, V, M);
    drawBrazoIzq(P, V, M);
-
    drawAspiradora(P, V, M);
 }
 
 void drawBrazoDer(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
-
    drawObjectTex(ejeBrazoDerecho, texGreyMetal, P, V, M);
-
    glm::vec3 centro = glm::vec3(-21.74f, 45.53f, -8.83f);
-
    glm::mat4 Torigen = glm::translate(I, -centro);
    glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Tvuelta = glm::translate(I, centro);
-
    drawObjectTex(brazoDerecho, texWhiteMetal, P, V, M * Tvuelta * R * Torigen);
 }
 
 void drawBrazoIzq(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    drawObjectTex(ejeBrazoIzquierdo, texGreyMetal, P, V, M);
-
    glm::vec3 centro = glm::vec3(22.63f, 45.53f, -8.83f);
-
    glm::mat4 Torigen = glm::translate(I, -centro);
    glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Tvuelta = glm::translate(I, centro);
-
    drawObjectTex(brazoIzquierdo, texWhiteMetal, P, V, M * Tvuelta * R * Torigen);
 }
 
@@ -848,34 +733,24 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    // Elevacion del brazo
    glm::vec3 centroBrazo = glm::vec3(0.0f, 45.53f, -8.83f);
-
    glm::mat4 Tida = glm::translate(I, -centroBrazo);
    glm::mat4 R = glm::rotate(I, glm::radians(anguloBrazos), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Tvuelta = glm::translate(I, centroBrazo);
-
    glm::mat4 Melevacion = Tvuelta * R * Tida;
 
    // Giro del rodillo
    glm::vec3 centroAspiradora = glm::vec3(0.14f, 34.04f, 24.53f);
-
    Tida = glm::translate(I, -centroAspiradora);
    R = glm::rotate(I, glm::radians(anguloAspiradora), glm::vec3(1.0, 0.0, 0.0));
    Tvuelta = glm::translate(I, centroAspiradora);
-
    glm::mat4 Mgiro = Tvuelta * R * Tida;
-
-   // 1. Girar el rodillo (Mgiro)
-   // 2. Moverse con los brazos (Melevacion)
-   // 3. Posición del Robot (M)
 
    drawObjectTex(aspiradora, texBlackRubber, P, V, M * Melevacion * Mgiro);
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glDepthMask(GL_FALSE);
-
    drawObjectTex(tapaAspiradora, texBlueGlass, P, V, M * Melevacion);
-
    glDepthMask(GL_TRUE);
    glDisable(GL_BLEND);
 }
@@ -883,37 +758,25 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::vec3 centroRueda = glm::vec3(0.0f, 9.80f, -3.58f);
-
    glm::mat4 Tida = glm::translate(I, -centroRueda);
    glm::mat4 Tvuelta = glm::translate(I, centroRueda);
-
    drawObjectTex(rueda, texBlackRubber, P, V, M * Tvuelta * rotRueda * Tida);
 }
 
 void levantarSirena()
 {
    float velocidadSirena = 0.05f;
-
-   if (sirenaLevantada)
-   {
-      if (alturaSirena < 0.0f)
-      {
+   if (sirenaLevantada) {
+      if (alturaSirena < 0.0f) {
          alturaSirena += velocidadSirena;
-         if (alturaSirena > 0.0f)
-            alturaSirena = 0.0f;
+         if (alturaSirena > 0.0f) alturaSirena = 0.0f;
       }
-
-      anguloSirena += 5.0f; 
+      anguloSirena += 5.0f;
       if (anguloSirena > 360.0f) anguloSirena -= 360.0f;
-   }
-   else
-   {
-      if (alturaSirena > -7.42f)
-      {
+   } else {
+      if (alturaSirena > -7.42f) {
          alturaSirena -= velocidadSirena;
-
-         if (alturaSirena < -7.42f)
-            alturaSirena = -7.42f;
+         if (alturaSirena < -7.42f) alturaSirena = -7.42f;
       }
    }
 }
@@ -921,69 +784,53 @@ void levantarSirena()
 void movimientoMO()
 {
    float velocidadMov = 1.0f;
-
    float velocidadRot = 5.0f;
-
    float rad = glm::radians(anguloGiro);
-
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
-   if (movW)
-   {
+   if (movW) {
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
-      if (animacionActiva)
-         maxInclinacionX = 40.0f;
-      if (!animacionActiva)
-         maxInclinacionX = 15.0f;
+      if (animacionActiva) maxInclinacionX = 40.0f;
+      if (!animacionActiva) maxInclinacionX = 15.0f;
    }
-   if (movS)
-   {
+   if (movS) {
       posX -= sin(rad) * velocidadMov;
       posZ -= cos(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
       maxInclinacionX = -15.0f;
    }
-   if (movA)
-   {
+   if (movA) {
       posX += cos(rad) * velocidadMov;
       posZ -= sin(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
       maxInclinacionZ = -15.0f;
    }
-   if (movD)
-   {
+   if (movD) {
       posX -= cos(rad) * velocidadMov;
       posZ += sin(rad) * velocidadMov;
       rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
       maxInclinacionZ = 15.0f;
    }
-
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
    if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 0.75f;
 }
 
-
 void luzOjos(glm::mat4 M){
    glm::vec3 centro = glm::vec3(0.0f, 9.80f, -3.58f);
-
    glm::mat4 Tida = glm::translate(glm::mat4(1.0f), -centro);
    glm::mat4 Rx = glm::rotate(I, glm::radians(inclinacionX), glm::vec3(1.0, 0.0, 0.0));
    glm::mat4 Rz = glm::rotate(I, glm::radians(inclinacionZ), glm::vec3(0.0, 0.0, 1.0));
    glm::mat4 Tvuelta = glm::translate(glm::mat4(1.0f), centro);
-   
    glm::mat4 Mcabeza = M * Tvuelta * Rz * Rx * Tida;
 
-   // Ojo Izquierdo: -8.0f, 60.0f, 26.6f
-   // Ojo Derecho:   8.0f, 60.0f, 26.6f, 1.0f
    glm::vec4 posOjoIzq = glm::vec4(-8.0f, 60.0f, 26.6f, 1.0f);
    glm::vec4 posOjoDer = glm::vec4(8.0f, 60.0f, 26.6f, 1.0f);
-
-   glm::vec4 direccionOjos   = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f); 
+   glm::vec4 direccionOjos = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 
    lightF[2].position  = glm::vec3(Mcabeza * posOjoIzq);
    lightF[2].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
@@ -992,24 +839,18 @@ void luzOjos(glm::mat4 M){
    lightF[3].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
 }
 
-
-
 void dibujarEscenario(glm::mat4 P, glm::mat4 V)
 {
-   // Dimensiones
    float nivelSuelo = -2.0f;
    float escalaParedY = 6.0f;
    float posY_Pared = nivelSuelo + escalaParedY;
    float escalaZocaloY = 0.5f;
    float posY_Zocalo = nivelSuelo + escalaZocaloY;
 
-   // 1. SUELO (Geometría)
    float escala = 5.0f;
-   for (int i = 0; i < 4; i++)
-   {
+   for (int i = 0; i < 4; i++) {
       float zPos = -15.0f + (i * 10.0f);
-      for (int j = 0; j < 2; j++)
-      {
+      for (int j = 0; j < 2; j++) {
          float xPos = (j == 0) ? -5.0f : 5.0f;
          glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
                                * glm::scale(I, glm::vec3(escala, 1.0, escala));
@@ -1017,25 +858,14 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
       }
    }
 
-   // 2. LINEA GUIA SUELO (Geometría única larga)
-   // Aunque es un solo objeto largo, pondremos varias luces a lo largo de él
    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
                             * glm::scale(I, glm::vec3(0.3, 1.0, 40.0));
    drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
 
-
-   // 3. PAREDES, ZOCALOS Y COLOCACIÓN DE LUCES
-   // Contador para ir asignando las luces disponibles (empezamos en 1, la 0 es techo)
    int luzIndex = 1;
+   for (int i = -3; i <= 3; i++) {
+      float zPos = i * 5.0f;
 
-   // Recorremos el pasillo de fondo a frente (7 segmentos: -3 a 3)
-   for (int i = -3; i <= 3; i++)
-   {
-      float zPos = i * 5.0f; // Distancia entre columnas de luces
-
-      // --- A. DIBUJAR GEOMETRÍA ---
-
-      // Paredes
       glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, posY_Pared, zPos))
                       * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
       drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
@@ -1044,7 +874,6 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
                       * glm::scale(I, glm::vec3(0.5, escalaParedY, 4.0));
       drawObjectTex(cube, texAxiomWall, P, V, M_Der);
 
-      // Zocalos Geometría
       glm::vec3 posZocaloIzq = glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos);
       glm::vec3 posZocaloDer = glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos);
 
@@ -1054,33 +883,20 @@ void dibujarEscenario(glm::mat4 P, glm::mat4 V)
       glm::mat4 Luz_Der = glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, 2.5));
       drawObjectTex(cube, texZocaloLed, P, V, Luz_Der);
 
-
-      // --- B. ASIGNAR LUCES REALES ---
-
-      // 1. Luz Izquierda
       if (luzIndex < NLP) {
-          // La movemos un poco hacia el centro (+0.5) para que ilumine el suelo delante del zocalo
           lightP[luzIndex].position = posZocaloIzq + glm::vec3(0.15, 0.0, 0.0);
           luzIndex++;
       }
-
-      // 2. Luz Derecha
       if (luzIndex < NLP) {
-          // La movemos un poco hacia el centro (-0.5)
           lightP[luzIndex].position = posZocaloDer - glm::vec3(0.15, 0.0, 0.0);
           luzIndex++;
       }
-
-      // 3. Luz Suelo (Centro)
       if (luzIndex < NLP) {
-          // Ponemos una luz justo encima de la linea guia en este punto Z
-          // La elevamos un poco (+0.5 en Y) para que ilumine el área alrededor
           lightP[luzIndex].position = glm::vec3(0.0, nivelSuelo + 0.2, zPos);
           luzIndex++;
       }
    }
 
-   // 4. SUCIEDAD
    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, Suciedad);
