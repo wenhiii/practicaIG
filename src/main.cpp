@@ -8,13 +8,11 @@
 
 void configScene();
 void renderScene();
-void animacionHyperScanner();
-void animacionDiagonalParedes();
 void setLights(glm::mat4 P, glm::mat4 V);
 void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
-void dibujarEscenario(glm::mat4 P, glm::mat4 V);
+void drawEscenario(glm::mat4 P, glm::mat4 V);
 
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M);
@@ -29,6 +27,8 @@ void drawAspiradora(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void levantarSirena();
 void movimientoMO();
 void luzOjos(glm::mat4 M);
+void animacionHyperScanner();
+void animacionDiagonalParedes();
 
 void funFramebufferSize(GLFWwindow *window, int width, int height);
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -501,7 +501,7 @@ void renderScene()
    // Fijamos las luces
    setLights(P, V);
 
-   dibujarEscenario(P, V);
+   drawEscenario(P, V);
    drawMO(P, V, S * T * R);
 }
 
@@ -1223,7 +1223,7 @@ void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float yCentroPared, float es
     drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
 }
 
-void dibujarEscenario(glm::mat4 P, glm::mat4 V)
+void drawEscenario(glm::mat4 P, glm::mat4 V)
 {
    // --- CONFIGURACIÓN GENERAL ---
    float nivelSuelo = -2.0f;
