@@ -8,7 +8,6 @@
 
 void configScene();
 void renderScene();
-void animacionWavePared();
 void animacionHyperScanner();
 void animacionDiagonalParedes();
 void setLights(glm::mat4 P, glm::mat4 V);
@@ -76,8 +75,6 @@ Texture imgRuby;
 Texture imgAxiomFloor;
 Texture imgFloorNormal;
 Texture imgFloorSpec;
-Texture imgGuideLine;
-
 
 Texture imgAxiomWall_Albedo;    // Reemplaza a la antigua difusa
 Texture imgAxiomWall_Normal;    // Reemplaza a la antigua normal
@@ -91,7 +88,7 @@ Texture imgAxiomWall_Roughness; // Se usará para el slot 'specular'
 Texture imgCeiling_Color;
 Texture imgCeiling_Normal;
 Texture imgCeiling_Roughness;
-Texture imgCeiling_AO; // Opcional si quieres usarla
+Texture imgCeiling_AO;
 
 Texture imgOrganic_Albedo;
 Texture imgOrganic_Normal;
@@ -112,7 +109,6 @@ Material mNeon;
 // TEXTURA ESCENARIO
 Textures texAxiomFloor;
 Textures texAxiomWall;
-Textures texGuideLine;
 Textures texZocaloLed;
 Textures texRuby;
 Textures texCeiling;
@@ -273,12 +269,9 @@ void configScene()
    imgAxiomFloor.initTexture("resources/textures/Scifi_Hex_Wall_Difusse.jpg");
    imgFloorNormal.initTexture("resources/textures/Scifi_Hex_Wall_normal.jpg");
    imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
-   imgGuideLine.initTexture("resources/textures/XD.jpg");
    imgAxiomWall_Albedo.initTexture("resources/textures/scifi_panel_1_color_1k.png");
    imgAxiomWall_Normal.initTexture("resources/textures/scifi_panel_1_normal_1k.png");
-   // Usamos el mapa de roughness para controlar el brillo especular.
    imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_roughness_1k.png");
-   // [NUEVO - COMENTADO] Inicialización de las texturas extra
    // imgAxiomWall_AO.initTexture("resources/textures/scifi_panel_1_ao_4k.png");
    // imgAxiomWall_Metallic.initTexture("resources/textures/scifi_panel_1_metallic_4k.png");
    // imgAxiomWall_Height.initTexture("resources/textures/scifi_panel_1_height_4k.png");
@@ -290,14 +283,13 @@ void configScene()
 
    imgOrganic_Albedo.initTexture("resources/textures/organic_tech_1_color_1k.png");
    imgOrganic_Normal.initTexture("resources/textures/organic_tech_1_normal_1k.png");
-   // Usamos el mapa de roughness para controlar el brillo especular
    imgOrganic_Roughness.initTexture("resources/textures/organic_tech_1_roughness_1k.png");
 
    // Configuracion texturas materiales
    texZocaloLed.diffuse  = imgWhiteMetal.getTexture();
    texZocaloLed.specular = imgWhiteMetal.getTexture();
    texZocaloLed.emissive = imgWhiteMetal.getTexture();
-   texZocaloLed.normal   = imgWhiteMetal.getTexture();
+   texZocaloLed.normal   = 0;
    texZocaloLed.shininess = 23.0;
 
    texAxiomWall.diffuse  = imgAxiomWall_Albedo.getTexture();
@@ -431,30 +423,21 @@ void configScene()
    texAxiomWall.specular = imgAxiomWall_Roughness.getTexture(); // Usamos roughness aquí
    texAxiomWall.emissive = imgNoEmissive.getTexture();
    texAxiomWall.normal   = imgAxiomWall_Normal.getTexture();
-   // Puedes necesitar ajustar el shininess dependiendo de cómo interprete tu shader el mapa de roughness.
-   // Si se ve muy brillante, prueba a bajarlo (ej. 10.0). Si se ve muy mate, súbelo.
    texAxiomWall.shininess = 50.0;
 
    texCeiling.diffuse  = imgCeiling_Color.getTexture();
-   texCeiling.specular = imgCeiling_Roughness.getTexture(); // Usamos roughness para el brillo
-   texCeiling.emissive = imgNoEmissive.getTexture();        // Sin luz propia
+   texCeiling.specular = imgCeiling_Roughness.getTexture();
+   texCeiling.emissive = imgNoEmissive.getTexture();
    texCeiling.normal   = imgCeiling_Normal.getTexture();
-   texCeiling.shininess = 30.0; // Ajustable según qué tan brillante quieras el azulejo
+   texCeiling.shininess = 30.0;
 
    texOrganicWall.diffuse  = imgOrganic_Albedo.getTexture();
-   texOrganicWall.specular = imgOrganic_Roughness.getTexture(); // Roughness en el slot specular
+   texOrganicWall.specular = imgOrganic_Roughness.getTexture();
    texOrganicWall.emissive = imgNoEmissive.getTexture();
    texOrganicWall.normal   = imgOrganic_Normal.getTexture();
-   // Ajustamos el brillo. Un valor medio-alto suele ir bien para este tipo de paneles.
    texOrganicWall.shininess = 64.0;
 
 
-
-   texGuideLine.diffuse = imgGuideLine.getTexture();
-   texGuideLine.specular = imgGuideLine.getTexture();
-   texGuideLine.emissive = imgGuideLine.getTexture();
-   texGuideLine.normal = 0;
-   texGuideLine.shininess = 10.0;
 
    texRuby.diffuse = imgRuby.getTexture();
    texRuby.specular = imgRuby.getTexture();
@@ -474,7 +457,6 @@ void renderScene()
 
    levantarSirena();
    movimientoMO();
-   //animacionWavePared();
    animacionHyperScanner();
    animacionDiagonalParedes();
 
@@ -906,238 +888,6 @@ void luzOjos(glm::mat4 M){
    lightF[3].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
 }
 
-
-void dibujarEscenario(glm::mat4 P, glm::mat4 V)
-{
-   // --- CONFIGURACIÓN BÁSICA ---
-   float nivelSuelo = -2.0f;
-   float escalaParedY = 6.0f;
-   float yCentroPared = nivelSuelo + escalaParedY;
-
-   float escalaZocaloY = 0.5f;
-   float posY_Zocalo = nivelSuelo + escalaZocaloY;
-
-   // ---------------------------------------------------------
-   // 1. SUELO
-   // ---------------------------------------------------------
-   float escalaSuelo = 5.0f;
-   for (int i = 0; i < 5; i++) {
-      float zPos = -20.0f + (i * 10.0f);
-      for (int j = 0; j < 2; j++) {
-         float xPos = (j == 0) ? -5.0f : 5.0f;
-         glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
-                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-         drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
-      }
-   }
-
-   // ---------------------------------------------------------
-   // 2. LÍNEA CENTRAL LED
-   // ---------------------------------------------------------
-   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
-                            * glm::scale(I, glm::vec3(0.3, 1.0, 25));
-   drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
-
-
-   // ---------------------------------------------------------
-   // 3. PAREDES, ZÓCALOS Y LUCES (CORREGIDO Y DISTRIBUIDO)
-   // ---------------------------------------------------------
-
-   float pasoZ = 10.0f;
-   float escalaBloqueZ = 5.0f;
-   int numBloquesZ = 5;
-   float zInicioPared = -20.0f;
-
-   float offsetNeon = 0.6f;
-   // [CAMBIO 1] Offset Luz: Separamos la luz de la pared más que el neón para que no quede "dentro"
-   float offsetLuz = 1.2f;
-
-   float posY_Neon = nivelSuelo + escalaParedY;
-   glm::vec3 escalaNeon = glm::vec3(0.05f, escalaParedY * 0.95f, 0.05f);
-
-   // Color Cyan
-   glm::vec3 colorNeon = glm::vec3(0.0f, 1.0f, 1.0f);
-
-   int luzIndex = 1;
-
-   for (int i = 0; i < numBloquesZ; i++) {
-      float zPos = zInicioPared + (i * pasoZ);
-
-      // --- A. PAREDES ---
-      glm::mat4 M_Pared_Izq = glm::translate(I, glm::vec3(-anchoPasillo, yCentroPared, zPos))
-                            * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
-      drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Izq);
-
-      glm::mat4 M_Pared_Der = glm::translate(I, glm::vec3( anchoPasillo, yCentroPared, zPos))
-                            * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
-      drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Der);
-
-
-      // --- B. ZÓCALOS ---
-      glm::vec3 posZocaloIzq = glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos);
-      glm::vec3 posZocaloDer = glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos);
-
-      drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, escalaBloqueZ)));
-      drawObjectTex(cube, texZocaloLed, P, V,
-              glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1f, escalaZocaloY, escalaBloqueZ)));
-
-
-      // --- C. LUCES Y NEONES ---
-      float zCostura = zPos + (pasoZ / 2.0f);
-
-      // Posiciones de la geometría del neón
-      glm::vec3 posBase_Neon_Izq = glm::vec3(-anchoPasillo + offsetNeon, posY_Neon, zCostura);
-      glm::vec3 posBase_Neon_Der = glm::vec3( anchoPasillo - offsetNeon, posY_Neon, zCostura);
-
-      drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Izq) * glm::scale(I, escalaNeon));
-      drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Der) * glm::scale(I, escalaNeon));
-
-      // [CAMBIO 2] DISTRIBUCIÓN EQUITATIVA
-      // Calculamos la altura total visual del neón (asumiendo cubo base de altura 2)
-      // Altura = escalaY * 2.0. En tu caso escala es (escalaParedY * 0.95)
-      float alturaTotal = (escalaParedY * 0.95f) * 2.0f;
-
-      // Dividimos la altura en 3 segmentos y ponemos la luz en el centro de cada tercio
-      // O simplemente separamos desde el centro hacia arriba y abajo.
-      float distanciaEntreLuces = alturaTotal / 3.0f; // Aprox 3.8 unidades
-
-      // Offsets verticales: Abajo, Centro, Arriba
-      float offsetsY[3] = { -distanciaEntreLuces, 0.0f, distanciaEntreLuces };
-
-      auto configurarLuz = [&](int index, glm::vec3 pos) {
-         lightP[index].position = pos;
-         lightP[index].diffuse  = colorNeon;
-         lightP[index].specular = glm::vec3(1.0f);
-         lightP[index].ambient  = glm::vec3(0.0f);
-
-         lightP[index].c0 = 1.0f;
-         lightP[index].c1 = 0.1f;
-         // [CAMBIO 3] Atenuación ajustada: bajamos c2 de 0.6 a 0.2 para que la luz viaje más lejos
-         // y se vea más natural, menos "foco pegado a la pared".
-         lightP[index].c2 = 0.6f;
-      };
-
-      for(int k = 0; k < 3; k++) {
-         float alturaLuz = posY_Neon + offsetsY[k];
-
-         // -- Lado Izquierdo --
-         // Usamos offsetLuz en lugar de offsetNeon para la posición X
-         if (luzIndex < NLP) {
-            glm::vec3 posLuz = glm::vec3(-anchoPasillo + offsetLuz, alturaLuz, zCostura);
-            configurarLuz(luzIndex, posLuz);
-            luzIndex++;
-         }
-
-         // -- Lado Derecho --
-         if (luzIndex < NLP) {
-            glm::vec3 posLuz = glm::vec3(anchoPasillo - offsetLuz, alturaLuz, zCostura);
-            configurarLuz(luzIndex, posLuz);
-            luzIndex++;
-         }
-      }
-   }
-
-   // --- 4. DETALLES FINALES ---
-   glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
-                      * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
-   drawObjectTex(plane, texRuby, P, V, Suciedad);
-
-
-
-
-
-
-
-
-
-
-
-   float nivelTecho = 10.0f;
-
-   // Usamos el mismo bucle que el suelo para garantizar "el mismo tamaño"
-   for (int i = 0; i < 5; i++) {
-      float zPos = -20.0f + (i * 10.0f);
-      for (int j = 0; j < 2; j++) {
-         float xPos = (j == 0) ? -5.0f : 5.0f;
-
-         // 1. Trasladamos a la posición (x, nivelTecho, z)
-         // 2. Rotamos 180 grados en X para que la textura mire hacia abajo
-         // 3. Escalamos igual que el suelo
-         glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
-                               * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
-                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-
-         drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
-      }
-   }
-
-
-
-
-
-
-   // ---------------------------------------------------------
-   // 5. NUEVO (CORREGIDO V2): PAREDES DE FONDO Y FRENTE
-   // ---------------------------------------------------------
-   // Usamos las texturas "Organic Tech"
-
-   // --- CÁLCULO DE DIMENSIONES (Igual que antes) ---
-   // Scale X = 10.5f (para ancho total 21.0)
-   // Scale Y = 6.0f  (para altura total 12.0)
-   // Scale Z = 0.5f  (para grosor total 1.0)
-   glm::vec3 escalaParedesCierre = glm::vec3(10.5f, escalaParedY, 0.5f);
-
-   // --- 5.1 PARED TRASERA (FONDO) ---
-   // El suelo empieza físicamente en Z = -25.0.
-   // Ponemos el centro de la pared en -26.0 para que quede justo detrás.
-   glm::vec3 posFondo = glm::vec3(0.0f, yCentroPared, -25.0f); // <--- CAMBIO AQUÍ
-   glm::mat4 M_Fondo = glm::translate(I, posFondo) * glm::scale(I, escalaParedesCierre);
-   drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
-
-
-   // --- 5.2 PARED DELANTERA (FRENTE) ---
-   // El suelo termina físicamente en Z = +25.0.
-   // Ponemos el centro de la pared en +26.0 para que quede justo delante.
-   glm::vec3 posFrente = glm::vec3(0.0f, yCentroPared, 25.0f); // <--- CAMBIO AQUÍ
-   glm::mat4 M_Frente = glm::translate(I, posFrente)
-                      * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
-                      * glm::scale(I, escalaParedesCierre);
-   drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
-}
-
-void animacionWavePared()
-{
-   // Obtenemos el tiempo actual para generar el movimiento continuo
-   float tiempo = glfwGetTime();
-   float velocidad = 2.0f; // Ajusta la velocidad del "escaneo"
-
-   // Calculamos la posición Z oscilando entre el inicio y fin del pasillo (-25 a 25)
-   float zPos = sin(tiempo * velocidad) * 25.0f;
-
-   // --- LUZ OLA IZQUIERDA (Usamos un índice libre, ej: lightP[10]) ---
-   // Posición: Pegada a la pared izquierda (X = -10 aprox)
-   lightP[10].position = glm::vec3(-9.0f, 4.0f, zPos);
-   lightP[10].diffuse = glm::vec3(0.0f, 1.0f, 1.0f);   // Color CYAN (puedes cambiarlo)
-   lightP[10].specular = glm::vec3(1.0f, 1.0f, 1.0f);
-   lightP[10].ambient = glm::vec3(0.0f, 0.0f, 0.0f);   // Sin ambiente para que sea oscuro alrededor
-
-   // ATENUACIÓN "LASER" (Muy concentrada)
-   lightP[10].c0 = 1.0f;
-   lightP[10].c1 = 0.1f;
-   lightP[10].c2 = 1.5f; // Valor alto = La luz no llega al suelo, solo toca la pared cercana
-
-   // --- LUZ OLA DERECHA (Usamos lightP[11]) ---
-   // Posición: Pegada a la pared derecha (X = 10 aprox)
-   lightP[11].position = glm::vec3(9.0f, 4.0f, zPos);
-   lightP[11].diffuse = glm::vec3(0.0f, 1.0f, 1.0f);   // Mismo color
-   lightP[11].specular = glm::vec3(1.0f, 1.0f, 1.0f);
-   lightP[11].ambient = glm::vec3(0.0f, 0.0f, 0.0f);
-
-   lightP[11].c0 = 1.0f;
-   lightP[11].c1 = 0.1f;
-   lightP[11].c2 = 1.5f; // Misma atenuación fuerte
-}
-
 void animacionHyperScanner()
 {
     float t = glfwGetTime();
@@ -1336,4 +1086,165 @@ void animacionDiagonalParedes()
         lightP[idx].ambient = glm::vec3(0.0f);
         lightP[idx].c0 = 1.0f; lightP[idx].c1 = 0.1f;
     }
+}
+
+void configurarLuzPuntual(int index, glm::vec3 pos, glm::vec3 colorDiff, float c2) {
+    if (index >= NLP) return; // Protección contra desbordamiento del array
+
+    lightP[index].position = pos;
+    lightP[index].diffuse  = colorDiff;
+    lightP[index].specular = glm::vec3(1.0f);
+    lightP[index].ambient  = glm::vec3(0.0f);
+    lightP[index].c0 = 1.0f;
+    lightP[index].c1 = 0.1f;
+    lightP[index].c2 = c2; // Atenuación
+}
+
+void dibujarSuelo(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
+    float escalaSuelo = 5.0f;
+    for (int i = 0; i < 5; i++) {
+        float zPos = -20.0f + (i * 10.0f);
+        for (int j = 0; j < 2; j++) {
+            float xPos = (j == 0) ? -5.0f : 5.0f;
+            glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
+                                  * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
+            drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+        }
+    }
+}
+
+void dibujarTecho(glm::mat4 P, glm::mat4 V, float nivelTecho) {
+    float escalaSuelo = 5.0f; // Misma escala base que el suelo
+    for (int i = 0; i < 5; i++) {
+        float zPos = -20.0f + (i * 10.0f);
+        for (int j = 0; j < 2; j++) {
+            float xPos = (j == 0) ? -5.0f : 5.0f;
+            glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
+                                  * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
+                                  * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
+            drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
+        }
+    }
+}
+
+void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
+    // Línea Central
+    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
+                          * glm::scale(I, glm::vec3(0.3, 1.0, 25));
+    drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
+
+    // Suciedad / Decal
+    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
+                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
+    drawObjectTex(plane, texRuby, P, V, Suciedad);
+}
+
+void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaParedY, int &luzIndex) {
+    float yCentroPared = nivelSuelo + escalaParedY;
+    float posY_Zocalo  = nivelSuelo + 0.5f; // escalaZocaloY asumida 0.5
+    float escalaZocaloY = 0.5f;
+
+    // Configuración Loop
+    float pasoZ = 10.0f;
+    float zInicioPared = -20.0f;
+    int numBloquesZ = 5;
+    float escalaBloqueZ = 5.0f;
+
+    // Configuración Luces/Neon
+    float offsetNeon = 0.6f;
+    float offsetLuz  = 1.2f;
+    float posY_Neon  = nivelSuelo + escalaParedY;
+    glm::vec3 escalaNeon = glm::vec3(0.05f, escalaParedY * 0.95f, 0.05f);
+    glm::vec3 colorNeon  = glm::vec3(0.0f, 1.0f, 1.0f); // Cyan
+
+    // Distribución vertical de luces
+    float alturaTotal = (escalaParedY * 0.95f) * 2.0f;
+    float distanciaEntreLuces = alturaTotal / 3.0f;
+    float offsetsY[3] = { -distanciaEntreLuces, 0.0f, distanciaEntreLuces };
+
+    for (int i = 0; i < numBloquesZ; i++) {
+        float zPos = zInicioPared + (i * pasoZ);
+
+        // --- A. PAREDES (Geometry) ---
+        glm::mat4 M_Pared_Izq = glm::translate(I, glm::vec3(-anchoPasillo, yCentroPared, zPos))
+                              * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Izq);
+
+        glm::mat4 M_Pared_Der = glm::translate(I, glm::vec3( anchoPasillo, yCentroPared, zPos))
+                              * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Der);
+
+        // --- B. ZÓCALOS ---
+        glm::vec3 posZocaloIzq = glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos);
+        glm::vec3 posZocaloDer = glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos);
+
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, escalaBloqueZ)));
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1f, escalaZocaloY, escalaBloqueZ)));
+
+        // --- C. LUCES Y NEONES ---
+        float zCostura = zPos + (pasoZ / 2.0f);
+
+        // Geometría Neón
+        glm::vec3 posBase_Neon_Izq = glm::vec3(-anchoPasillo + offsetNeon, posY_Neon, zCostura);
+        glm::vec3 posBase_Neon_Der = glm::vec3( anchoPasillo - offsetNeon, posY_Neon, zCostura);
+
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Izq) * glm::scale(I, escalaNeon));
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Der) * glm::scale(I, escalaNeon));
+
+        // Configuración de Luces Puntuales
+        for(int k = 0; k < 3; k++) {
+            float alturaLuz = posY_Neon + offsetsY[k];
+
+            // Lado Izquierdo
+            if (luzIndex < NLP) {
+                configurarLuzPuntual(luzIndex++, glm::vec3(-anchoPasillo + offsetLuz, alturaLuz, zCostura), colorNeon, 0.6f);
+            }
+            // Lado Derecho
+            if (luzIndex < NLP) {
+                configurarLuzPuntual(luzIndex++, glm::vec3(anchoPasillo - offsetLuz, alturaLuz, zCostura), colorNeon, 0.6f);
+            }
+        }
+    }
+}
+
+void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float yCentroPared, float escalaParedY) {
+    glm::vec3 escalaParedesCierre = glm::vec3(10.5f, escalaParedY, 0.5f);
+
+    // Pared Trasera (Fondo)
+    glm::vec3 posFondo = glm::vec3(0.0f, yCentroPared, -25.0f);
+    glm::mat4 M_Fondo = glm::translate(I, posFondo) * glm::scale(I, escalaParedesCierre);
+    drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
+
+    // Pared Delantera (Frente)
+    glm::vec3 posFrente = glm::vec3(0.0f, yCentroPared, 25.0f);
+    glm::mat4 M_Frente = glm::translate(I, posFrente)
+                       * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
+                       * glm::scale(I, escalaParedesCierre);
+    drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
+}
+
+void dibujarEscenario(glm::mat4 P, glm::mat4 V)
+{
+   // --- CONFIGURACIÓN GENERAL ---
+   float nivelSuelo = -2.0f;
+   float escalaParedY = 6.0f;
+   float yCentroPared = nivelSuelo + escalaParedY;
+   float nivelTecho = 10.0f;
+
+   // Índice de luces (se pasa por referencia para incrementar)
+   int luzIndex = 1;
+
+   // 1. Estructura Horizontal
+   dibujarSuelo(P, V, nivelSuelo);
+   dibujarTecho(P, V, nivelTecho);
+
+   // 2. Detalles de suelo
+   dibujarDetalles(P, V, nivelSuelo);
+
+   // 3. Estructura Lateral e Iluminación
+   // Pasamos luzIndex para que configure las luces lightP[1] en adelante
+   dibujarParedesLaterales(P, V, nivelSuelo, escalaParedY, luzIndex);
+
+   // 4. Cierre del pasillo
+   dibujarParedesCierre(P, V, yCentroPared, escalaParedY);
 }
