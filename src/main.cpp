@@ -492,7 +492,7 @@ void renderScene()
    shaders.setVec3("ueye", cameraPos);
    // -----------------------------------------------------------------------
 
-   glm::mat4 T = glm::translate(I, glm::vec3(posX, 0.0, posZ));
+   glm::mat4 T = glm::translate(I, glm::vec3(posX, -2.0, posZ));
    glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
    glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
 
