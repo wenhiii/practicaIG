@@ -496,13 +496,13 @@ void renderScene()
    glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
    glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
 
-   luzOjos(S * T * R);
+   luzOjos(T * R * S);
 
    // Fijamos las luces
    setLights(P, V);
 
    drawEscenario(P, V);
-   drawMO(P, V, S * T * R);
+   drawMO(P, V, T * R * S);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
@@ -832,12 +832,17 @@ void levantarSirena()
 
 void movimientoMO()
 {
-   float velocidadMov = 1.0f;
+   float velocidadMov = 0.1f;
    float velocidadRot = 5.0f;
    float rad = glm::radians(anguloGiro);
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
+
+   float limiteX = 7.3f;
+   float limiteZ = 22.3f;
+
+   // 1. CÁLCULO DE MOVIMIENTO
    if (movW) {
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
@@ -863,6 +868,19 @@ void movimientoMO()
       rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
       maxInclinacionZ = 15.0f;
    }
+
+   // 2. RESTRICCIÓN DE LÍMITES (LO NUEVO)
+   // Si el cálculo anterior te sacó del mapa, esto te "empuja" suavemente al borde.
+
+   // Eje X (Paredes laterales)
+   if (posX > limiteX) posX = limiteX;
+   if (posX < -limiteX) posX = -limiteX;
+
+   // Eje Z (Fondo y Frente)
+   if (posZ > limiteZ) posZ = limiteZ;
+   if (posZ < -limiteZ) posZ = -limiteZ;
+
+   // 3. INCLINACIÓN
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
