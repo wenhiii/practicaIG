@@ -168,6 +168,8 @@ bool movS = false;
 bool movA = false;
 bool movD = false;
 
+bool modoF5 = false;
+
 int main()
 {
    // Inicializamos GLFW
@@ -477,20 +479,41 @@ void renderScene()
    glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, nplane, fplane);
 
    // -----------------------------------------------------------------------
-   // CÁLCULO DE CÁMARA LIBRE (FPS)
+   // CÁLCULO DE CÁMARA (LIBRE / F5)
    // -----------------------------------------------------------------------
-   // Calculamos el vector "front" en base a los ángulos del ratón
-   glm::vec3 front;
-   front.x = cos(glm::radians(alphaX)) * cos(glm::radians(alphaY));
-   front.y = sin(glm::radians(alphaY));
-   front.z = sin(glm::radians(alphaX)) * cos(glm::radians(alphaY));
-   cameraFront = glm::normalize(front);
+   glm::mat4 V;
 
-   // Matriz V (LookAt: desde Posicion, mirando a Posicion+Frente)
-   glm::mat4 V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+   if (modoF5)
+   {
+      // Modo F5: Cámara detrás del robot
+      float distancia = 12.5f;
+      float altura = 5.0f;
+      float rad = glm::radians(anguloGiro);
 
-   // Actualizamos la posición del ojo para los shaders (brillos especulares)
-   shaders.setVec3("ueye", cameraPos);
+      // Posición de la cámara calculada relativa al ángulo del robot
+      glm::vec3 camPosF5;
+      camPosF5.x = posX - (sin(rad) * distancia);
+      camPosF5.y = altura;
+      camPosF5.z = posZ - (cos(rad) * distancia);
+
+      // Miramos hacia el robot (un poco por encima del suelo)
+      glm::vec3 target = glm::vec3(posX, 4.0f, posZ);
+
+      V = glm::lookAt(camPosF5, target, glm::vec3(0.0f, 1.0f, 0.0f));
+      shaders.setVec3("ueye", camPosF5);
+   }
+   else
+   {
+      // Modo FPS: Cámara Libre
+      glm::vec3 front;
+      front.x = cos(glm::radians(alphaX)) * cos(glm::radians(alphaY));
+      front.y = sin(glm::radians(alphaY));
+      front.z = sin(glm::radians(alphaX)) * cos(glm::radians(alphaY));
+      cameraFront = glm::normalize(front);
+
+      V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+      shaders.setVec3("ueye", cameraPos);
+   }
    // -----------------------------------------------------------------------
 
    glm::mat4 T = glm::translate(I, glm::vec3(posX, -2.0, posZ));
@@ -588,6 +611,9 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
          cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
       break;
    // -----------------------------------------
+   case GLFW_KEY_C:
+      if (action == GLFW_PRESS) modoF5 = !modoF5;
+      break;
 
    case GLFW_KEY_G:
       if (action == GLFW_PRESS) animacionActiva = !animacionActiva;
@@ -1113,7 +1139,7 @@ void dibujarSuelo(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
    float escalaSuelo = 5.0f;
    float tamanoLosa = 10.0f;
    for (int i = 0; i < 10; i++) {
-      float zPos = -45.0f + (i * tamanoLosa);
+      float zPos = -50.0f + (i * tamanoLosa);
       for (int j = 0; j < 4; j++) {
          float xPos = -15.0f + (j * tamanoLosa);
 
@@ -1128,7 +1154,7 @@ void dibujarTecho(glm::mat4 P, glm::mat4 V, float nivelTecho) {
    float escalaSuelo = 5.0f;
    float tamanoLosa = 10.0f;
    for (int i = 0; i < 10; i++) {
-      float zPos = -45.0f + (i * tamanoLosa);
+      float zPos = -50.0f + (i * tamanoLosa);
       for (int j = 0; j < 4; j++) {
          float xPos = -15.0f + (j * tamanoLosa);
 
@@ -1142,7 +1168,7 @@ void dibujarTecho(glm::mat4 P, glm::mat4 V, float nivelTecho) {
 
 void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
    // CAMBIO: Escala Z de 25 a 50 (Total 100 de largo)
-   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
+   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, -5.0))
                          * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
    drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
 
@@ -1152,133 +1178,117 @@ void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
    drawObjectTex(plane, texRuby, P, V, Suciedad);
 }
 
-void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaParedY, int &luzIndex) {
-    float yCentroPared = nivelSuelo + escalaParedY;
-    float posY_Zocalo  = nivelSuelo + 0.5f; // escalaZocaloY asumida 0.5
-    float escalaZocaloY = 0.5f;
+void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaGiganteY, int &luzIndex, float anchoPasillo) {
 
-    // Configuración Loop
-    float pasoZ = 10.0f;
-    float zInicioPared = -45.0f;
-    int numBloquesZ = 10;
-    float escalaBloqueZ = 5.0f;
+    // Altura total y centro
+    float alturaReal = escalaGiganteY * 2.0f;
+    float yCentro = nivelSuelo + escalaGiganteY;
 
-    // Configuración Luces/Neon
+    // Configuración Z (Longitudinal)
+    float escalaGiganteZ = 10.0f;
+    float pasoZ = 20.0f;
+    float zInicio = -45.0f;
+    int numBloques = 5;
+
+    // Detalles
     float offsetNeon = 0.6f;
-    float offsetLuz  = 1.2f;
-    float posY_Neon  = nivelSuelo + escalaParedY;
-    glm::vec3 escalaNeon = glm::vec3(0.05f, escalaParedY * 0.95f, 0.05f);
-    glm::vec3 colorNeon  = glm::vec3(0.0f, 1.0f, 1.0f); // Cyan
+    float offsetLuz  = 1.2f; // Que tan adentro de la pared está la luz
+    glm::vec3 colorNeon = glm::vec3(0.0f, 1.0f, 1.0f);
+    glm::vec3 escalaNeon = glm::vec3(0.05f, alturaReal * 0.48f, 0.05f);
 
-    // Distribución vertical de luces
-    float alturaTotal = (escalaParedY * 0.95f) * 2.0f;
-    float distanciaEntreLuces = alturaTotal / 3.0f;
-    float offsetsY[3] = { -distanciaEntreLuces, 0.0f, distanciaEntreLuces };
+    float offsetsY[3] = { -8.0f, 0.0f, 8.0f };
 
-    for (int i = 0; i < numBloquesZ; i++) {
-        float zPos = zInicioPared + (i * pasoZ);
+    for (int i = 0; i < numBloques; i++) {
+        float zPos = zInicio + (i * pasoZ);
+        float zCentroDetalle = zPos;
 
-        // --- A. PAREDES (Geometry) ---
-        glm::mat4 M_Pared_Izq = glm::translate(I, glm::vec3(-anchoPasillo, yCentroPared, zPos))
-                              * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
-        drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Izq);
+        // 1. PAREDES GIGANTES (Usando anchoPasillo calculado)
+        // Nota: anchoPasillo es la distancia del centro (0,0) al CENTRO de la pared.
+        glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, yCentro, zPos))
+                        * glm::scale(I, glm::vec3(0.5f, escalaGiganteY, escalaGiganteZ));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
 
-        glm::mat4 M_Pared_Der = glm::translate(I, glm::vec3( anchoPasillo, yCentroPared, zPos))
-                              * glm::scale(I, glm::vec3(0.5, escalaParedY, escalaBloqueZ));
-        drawObjectTex(cube, texAxiomWall, P, V, M_Pared_Der);
+        glm::mat4 M_Der = glm::translate(I, glm::vec3(anchoPasillo, yCentro, zPos))
+                        * glm::scale(I, glm::vec3(0.5f, escalaGiganteY, escalaGiganteZ));
+        drawObjectTex(cube, texAxiomWall, P, V, M_Der);
 
-        // --- B. ZÓCALOS ---
-        glm::vec3 posZocaloIzq = glm::vec3(-anchoPasillo + 0.6, posY_Zocalo, zPos);
-        glm::vec3 posZocaloDer = glm::vec3( anchoPasillo - 0.6, posY_Zocalo, zPos);
+        // 2. NEONES
+        // Ajustamos la posición X para que sobresalgan un poco hacia el pasillo
+        // anchoPasillo es el centro de la pared. Si restamos offsetNeon vamos hacia el centro (0) en el lado derecho.
+        glm::vec3 posNeonIzq = glm::vec3(-anchoPasillo + offsetNeon, yCentro, zCentroDetalle);
+        glm::vec3 posNeonDer = glm::vec3( anchoPasillo - offsetNeon, yCentro, zCentroDetalle);
 
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1, escalaZocaloY, escalaBloqueZ)));
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1f, escalaZocaloY, escalaBloqueZ)));
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posNeonIzq) * glm::scale(I, escalaNeon));
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posNeonDer) * glm::scale(I, escalaNeon));
 
-        // --- C. LUCES Y NEONES ---
-        float zCostura = zPos + (pasoZ / 2.0f);
-
-        // Geometría Neón
-        glm::vec3 posBase_Neon_Izq = glm::vec3(-anchoPasillo + offsetNeon, posY_Neon, zCostura);
-        glm::vec3 posBase_Neon_Der = glm::vec3( anchoPasillo - offsetNeon, posY_Neon, zCostura);
-
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Izq) * glm::scale(I, escalaNeon));
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posBase_Neon_Der) * glm::scale(I, escalaNeon));
-
-        // Configuración de Luces Puntuales
+        // 3. LUCES
         for(int k = 0; k < 3; k++) {
-            float alturaLuz = posY_Neon + offsetsY[k];
-
-            // Lado Izquierdo
-            if (luzIndex < NLP) {
-                configurarLuzPuntual(luzIndex++, glm::vec3(-anchoPasillo + offsetLuz, alturaLuz, zCostura), colorNeon, 0.6f);
-            }
-            // Lado Derecho
-            if (luzIndex < NLP) {
-                configurarLuzPuntual(luzIndex++, glm::vec3(anchoPasillo - offsetLuz, alturaLuz, zCostura), colorNeon, 0.6f);
-            }
+            float alturaLuz = yCentro + offsetsY[k];
+            if (luzIndex < NLP)
+                configurarLuzPuntual(luzIndex++, glm::vec3(-anchoPasillo + offsetLuz, alturaLuz, zCentroDetalle), colorNeon, 0.4f);
+            if (luzIndex < NLP)
+                configurarLuzPuntual(luzIndex++, glm::vec3(anchoPasillo - offsetLuz, alturaLuz, zCentroDetalle), colorNeon, 0.4f);
         }
+
+        // 4. ZÓCALO LED (Base)
+        // Lo ponemos ligeramente más adentro que la pared para que tape la unión con el suelo
+        float posY_Zocalo = nivelSuelo + 0.5f;
+        // anchoPasillo - 0.55 pone el zocalo justo pegado a la cara interna de la pared
+        float xZocaloDist = anchoPasillo - 0.55f;
+
+        glm::vec3 posZocaloIzq = glm::vec3(-xZocaloDist, posY_Zocalo, zPos);
+        glm::vec3 posZocaloDer = glm::vec3( xZocaloDist, posY_Zocalo, zPos);
+
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1f, 0.5f, escalaGiganteZ)));
+        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1f, 0.5f, escalaGiganteZ)));
     }
 }
 
-void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float yCentroPared, float escalaParedY) {
-   float escalaAnchoPanel = 5.25f;
-   float anchoRealPanel = 2.0f * escalaAnchoPanel; // 10.5f
+void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaGiganteY, float anchoPasillo) {
 
-   // Hacemos un bucle para colocar 4 paneles uno al lado del otro
-   for(int i = 0; i < 4; i++) {
+   float yCentro = nivelSuelo + escalaGiganteY;
 
-      // Calculamos la posición X para centrarlos:
-      // i=0 -> -15.75
-      // i=1 -> -5.25
-      // i=2 -> +5.25
-      // i=3 -> +15.75
-      float xPos = -15.75f + (i * anchoRealPanel);
+   float anchoTotalRequerido = (anchoPasillo + 0.5f) * 2.0f;
 
-      // --- PARED TRASERA (FONDO) ---
-      // Z fija en -50.0
-      glm::vec3 posFondo = glm::vec3(xPos, yCentroPared, -50.0f);
+   float anchoRealPanel = anchoTotalRequerido / 2.0f;
 
+   float escalaPanelX = anchoRealPanel / 2.0f;
+
+   float xOffset = anchoRealPanel / 2.0f;
+
+   for(int i = 0; i < 2; i++) {
+      // i=0 -> Izquierda (-xOffset), i=1 -> Derecha (+xOffset)
+      float xPos = (i == 0) ? -xOffset : xOffset;
+
+      // PARED TRASERA
+      glm::vec3 posFondo = glm::vec3(xPos, yCentro, -55.0f);
       glm::mat4 M_Fondo = glm::translate(I, posFondo)
-                        * glm::scale(I, glm::vec3(escalaAnchoPanel, escalaParedY, 0.5f));
-
+                        * glm::scale(I, glm::vec3(escalaPanelX, escalaGiganteY, 0.5f));
       drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
 
-
-
-      // --- PARED DELANTERA (FRENTE) Z = 50.0 ---
-      glm::vec3 posFrente = glm::vec3(xPos, yCentroPared, 50.0f);
-
-
+      // PARED DELANTERA
+      glm::vec3 posFrente = glm::vec3(xPos, yCentro, 45.0f);
       glm::mat4 M_Frente = glm::translate(I, posFrente)
-                         * glm::scale(I, glm::vec3(-escalaAnchoPanel, escalaParedY, -0.5f));
-
+                         * glm::scale(I, glm::vec3(-escalaPanelX, escalaGiganteY, -0.5f));
       drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
    }
 }
 
-
 void drawEscenario(glm::mat4 P, glm::mat4 V)
 {
-   // --- CONFIGURACIÓN GENERAL ---
    float nivelSuelo = -2.0f;
-   float escalaParedY = 6.0f;
-   float yCentroPared = nivelSuelo + escalaParedY;
-   float nivelTecho = 10.0f;
+   float escalaGiganteY = 12.0f; // Altura paredes = 24.0
+   float nivelTecho = 22.0f;
 
-   // Índice de luces (se pasa por referencia para incrementar)
+   float anchoPasillo = 20.5f;
+
    int luzIndex = 1;
 
-   // 1. Estructura Horizontal
    dibujarSuelo(P, V, nivelSuelo);
    dibujarTecho(P, V, nivelTecho);
-
-   // 2. Detalles de suelo
    dibujarDetalles(P, V, nivelSuelo);
 
-   // 3. Estructura Lateral e Iluminación
-   // Pasamos luzIndex para que configure las luces lightP[1] en adelante
-   dibujarParedesLaterales(P, V, nivelSuelo, escalaParedY, luzIndex);
-
-   // 4. Cierre del pasillo
-   dibujarParedesCierre(P, V, yCentroPared, escalaParedY);
+   // Pasamos anchoPasillo a las funciones para que todo cuadre
+   dibujarParedesLaterales(P, V, nivelSuelo, escalaGiganteY, luzIndex, anchoPasillo);
+   dibujarParedesCierre(P, V, nivelSuelo, escalaGiganteY, anchoPasillo);
 }
