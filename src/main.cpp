@@ -43,6 +43,8 @@ Model sphere;
 Model plane;
 Model cube;
 
+Model signal;
+
 // M-O
 Model aspiradora;
 Model brazoDerecho;
@@ -94,6 +96,14 @@ Texture imgOrganic_Albedo;
 Texture imgOrganic_Normal;
 Texture imgOrganic_Roughness;
 
+
+Texture signal_BaseColor;
+Texture signal_Roughness;
+Texture signal_Metallic;
+Texture signal_Normal;
+Texture signal_AO;
+
+
 // Luces y materiales
 #define NLD 1
 #define NLP 50
@@ -120,6 +130,9 @@ Textures texBlackMetal;
 Textures texBlackRubber;
 Textures texBlueGlass;
 Textures texRedGlass;
+
+Textures texSignal;
+
 
 //  Ancho del pasillo
 float anchoPasillo = 20.0f;
@@ -238,6 +251,7 @@ void configScene()
    sphere.initModel("resources/models/sphere.obj");
    plane.initModel("resources/models/plane.obj");
    cube.initModel("resources/models/cube.obj");
+   signal.initModel("resources/models/Sign.obj");
 
    // M-O
    aspiradora.initModel("resources/models/aspiradora.obj");
@@ -287,6 +301,10 @@ void configScene()
    imgOrganic_Albedo.initTexture("resources/textures/organic_tech_1_color_1k.png");
    imgOrganic_Normal.initTexture("resources/textures/organic_tech_1_normal_1k.png");
    imgOrganic_Roughness.initTexture("resources/textures/organic_tech_1_roughness_1k.png");
+
+   signal_BaseColor.initTexture("resources/textures/sign_basecolor.png");
+   signal_Roughness.initTexture("resources/textures/sign_roughness.png");
+   signal_Normal.initTexture("resources/textures/sign_normal.png");
 
    // Configuracion texturas materiales
    texZocaloLed.diffuse  = imgWhiteMetal.getTexture();
@@ -447,6 +465,12 @@ void configScene()
    texRuby.emissive = imgNoEmissive.getTexture();
    texRuby.normal = 0;
    texRuby.shininess = 128.0;
+
+
+   texSignal.diffuse  = signal_BaseColor.getTexture();
+   texSignal.specular = signal_Roughness.getTexture();
+   texSignal.normal   = signal_Normal.getTexture();
+   texSignal.shininess = 10.0f;
 }
 
 void renderScene()
@@ -527,6 +551,12 @@ void renderScene()
 
    drawEscenario(P, V);
    drawMO(P, V, T * R * S);
+   drawObjectTex(signal, texSignal, P, V,
+    glm::scale(
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -2.0f)),
+        glm::vec3(0.1f)
+    )
+);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
