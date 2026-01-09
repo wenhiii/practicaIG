@@ -122,7 +122,7 @@ Textures texBlueGlass;
 Textures texRedGlass;
 
 //  Ancho del pasillo
-float anchoPasillo = 10.0f;
+float anchoPasillo = 20.0f;
 
 // Viewport
 int w = 500;
@@ -471,7 +471,7 @@ void renderScene()
 
    // Matriz P
    float nplane = 0.1;
-   float fplane = 50.0;
+   float fplane = 400.0;
    float aspect = (float)w / (float)h;
    glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, nplane, fplane);
 
@@ -839,8 +839,8 @@ void movimientoMO()
    float maxInclinacionZ = 0.0f;
 
 
-   float limiteX = 7.3f;
-   float limiteZ = 22.3f;
+   float limiteX = 17.3f;
+   float limiteZ = 47.3f;
 
    // 1. CÁLCULO DE MOVIMIENTO
    if (movW) {
@@ -913,10 +913,10 @@ void animacionHyperScanner()
     // --- CORRECCIÓN DE POSICIÓN ---
     // Si tu pared del fondo la pusiste en Z = -26.0 (según corregimos antes),
     // ponemos la luz en -24.0. (2 metros de distancia es seguro).
-    float zLuz = -24.0f;
+    float zLuz = -48.0f;
 
     // Límites de movimiento en X
-    float amplitud = 9.0f;
+    float amplitud = 19.0f;
 
     // --- CORRECCIÓN DE ÍNDICES ---
     // Usamos luces bajas (1 al 10) para evitar limites del shader.
@@ -977,85 +977,77 @@ void animacionHyperScanner()
 void animacionDiagonalParedes()
 {float t = glfwGetTime();
 
-    // --- CONFIGURACIÓN DEL CAOS ---
-    float velocidad = 25.0f;       // Velocidad absurda
-    float paredX = 9.2f;           // Posición X
+    // 1. AJUSTE DE ANCHO
+    // Antes 9.2f -> Ahora 19.0f (Para pegar con la pared de ancho 20)
+    float paredX = 19.0f;
 
-    // Frecuencia de la onda eléctrica (cuántas "S" hace el rayo)
+    // 2. CONFIGURACIÓN DEL CAOS
+    float velocidad = 25.0f;
     float frecuenciaOnda = 0.5f;
-    // Amplitud de la onda (cuánto se separa de la diagonal central)
     float amplitudOnda = 1.5f;
 
-    // Colores base para la interpolación (RGB)
-    glm::vec3 cFrio = glm::vec3(0.0f, 1.0f, 1.0f); // Cyan
-    glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f); // Violeta
-    glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f); // Rojo Fuego
+    glm::vec3 cFrio = glm::vec3(0.0f, 1.0f, 1.0f);
+    glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f);
+    glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f);
 
     // -------------------------------------------------------------------------
     // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente)
     // -------------------------------------------------------------------------
-    // Usamos luces 10 a 24 (15 luces formando una serpiente larga)
+    // Usamos las mismas luces (10 a 24)
     int lucesSerpiente = 15;
     int baseIdx = 10;
 
     for(int i = 0; i < lucesSerpiente; i++)
     {
         int idx = baseIdx + i;
+        float lag = i * 0.5f; // Un poco más de separación entre bolas
 
-        // El "Time Lag" crea la forma de serpiente.
-        // Si el lag es pequeño, parece un láser sólido. Si es alto, son bolas separadas.
-        float lag = i * 0.4f;
+        // 3. AJUSTE DE LARGO (CICLO)
+        // El pasillo mide 100m (-50 a 50). El ciclo debe ser mayor (130m) para dar margen.
+        float ciclo = fmod((t * velocidad) - lag, 130.0f);
 
-        // Posición Z Cíclica
-        float ciclo = fmod((t * velocidad) - lag, 70.0f); // 70 metros de recorrido virtual
-        float zActual = -30.0f + ciclo; // Empieza antes del pasillo, termina después
+        // Empezamos en -65 para asegurarnos de que cruza todo el pasillo
+        float zActual = -65.0f + ciclo;
 
-        // Si se sale del rango visible, apagar (optimización visual)
-        if(zActual > 30.0f || zActual < -30.0f) {
+        // Apagar si sale del rango visible (-55 a +55)
+        if(zActual > 55.0f || zActual < -55.0f) {
             lightP[idx].diffuse = glm::vec3(0.0f);
             continue;
         }
 
-        // --- LA MATEMÁTICA "GOD MODE" ---
-        // 1. Diagonal Base: Sube de Y=0 a Y=10 a medida que avanza en Z
-        float yBase = 5.0f + (zActual / 5.0f);
+        // 4. AJUSTE DE PENDIENTE (Math)
+        // "zActual / 10.0f" -> Pendiente más suave para que no se vaya al techo muy rápido
+        // Sumamos 4.0f para que empiece a media altura
+        float yBase = 4.0f + (zActual * 0.12f);
 
-        // 2. Interferencia Eléctrica: Añadimos una onda senoidal que se mueve
-        // 't * 10.0f' hace que la onda vibre aunque el rayo esté quieto
         float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * amplitudOnda;
-
         float yFinal = yBase + ruidoElectrico;
 
-        // Posicionar
+        // Posicionar en la pared IZQUIERDA (-paredX)
         lightP[idx].position = glm::vec3(-paredX, yFinal, zActual);
 
-        // --- COLORIMETRÍA DINÁMICA ---
-        // Calculamos "calor" de 0.0 a 1.0 basado en lo lejos que ha llegado (Z)
-        float calor = (zActual + 25.0f) / 50.0f; // 0.0 al inicio, 1.0 al final
+        // --- COLOR (Ajustado al nuevo rango de Z) ---
+        // Normalizamos Z de -50..50 a 0..1
+        float calor = (zActual + 50.0f) / 100.0f;
         calor = glm::clamp(calor, 0.0f, 1.0f);
 
         glm::vec3 colorFinal;
         if(calor < 0.5f) {
-            // Mezcla Frío -> Medio
             float mezcla = calor * 2.0f;
             colorFinal = glm::mix(cFrio, cMedio, mezcla);
         } else {
-            // Mezcla Medio -> Caliente
             float mezcla = (calor - 0.5f) * 2.0f;
             colorFinal = glm::mix(cMedio, cCaliente, mezcla);
         }
 
-        // --- EFECTO ESTROBOSCÓPICO ---
-        // Hacemos que la intensidad parpadee violentamente
         float estrobo = (sin(t * 60.0f + i) > 0.0f) ? 2.0f : 0.8f;
 
-        // Las primeras luces (la cabeza) brillan más blanco (núcleo de plasma)
         if (i < 3) {
-             lightP[idx].diffuse = glm::vec3(1.0f, 1.0f, 1.0f) * 5.0f; // BLANCO NUCLEAR
-             lightP[idx].c2 = 0.5f; // Muy concentrado
+             lightP[idx].diffuse = glm::vec3(1.0f, 1.0f, 1.0f) * 5.0f;
+             lightP[idx].c2 = 0.5f;
         } else {
              lightP[idx].diffuse = colorFinal * estrobo;
-             lightP[idx].c2 = 1.0f;
+             lightP[idx].c2 = 1.0f; // Atenuación ajustada para pasillo ancho
         }
 
         lightP[idx].specular = glm::vec3(1.0f);
@@ -1064,10 +1056,8 @@ void animacionDiagonalParedes()
     }
 
     // -------------------------------------------------------------------------
-    // GRUPO 2: PARED DERECHA (Lluvia de Datos Matrix/Hacker)
+    // GRUPO 2: PARED DERECHA (Lluvia de Datos Matrix)
     // -------------------------------------------------------------------------
-    // A la derecha haremos algo distinto: "Lluvia Digital" rápida hacia abajo y atrás
-    // Luces 25 a 40
     int baseIdxDer = 25;
     int lucesLluvia = 15;
 
@@ -1075,29 +1065,29 @@ void animacionDiagonalParedes()
     {
         int idx = baseIdxDer + i;
 
-        // Cada gota de luz tiene una velocidad aleatoria simulada usando 'i'
         float velocidadGota = velocidad * (1.0f + (i % 3) * 0.5f);
 
-        float ciclo = fmod((t * velocidadGota) + (i * 10.0f), 60.0f);
-        float zActual = 30.0f - ciclo; // Va hacia atrás (Z positivo a negativo)
+        // Ciclo largo invertido
+        float ciclo = fmod((t * velocidadGota) + (i * 10.0f), 130.0f);
+        float zActual = 65.0f - ciclo; // De +65 a -65
 
-        // Diagonal Inversa con "Glitch" (saltos)
-        // Usamos 'floor' en el tiempo para que la posición Y salte a veces
-        float glitchY = (sin(t * 20.0f + i) > 0.9f) ? 1.0f : 0.0f; // Salto repentino
-        float yActual = 12.0f - (ciclo * 0.3f) + glitchY;
+        // Glitch vertical
+        float glitchY = (sin(t * 20.0f + i) > 0.9f) ? 1.0f : 0.0f;
 
+        // Altura constante con variación leve
+        float yActual = 10.0f - (ciclo * 0.1f) + glitchY; // Cae suavemente
+
+        // Posicionar en la pared DERECHA (+paredX)
         lightP[idx].position = glm::vec3(paredX, yActual, zActual);
 
-        // COLOR VERDE HACKER CORRUPTO
-        // Verde intenso con destellos rosados ocasionales (corrupción de datos)
         bool corrupto = (sin(t * 40.0f + i) > 0.95f);
 
         if (corrupto) {
-            lightP[idx].diffuse = glm::vec3(1.0f, 0.0f, 1.0f) * 5.0f; // MAGENTA FUERTE
-            lightP[idx].c2 = 0.2f; // Explota visualmente
+            lightP[idx].diffuse = glm::vec3(1.0f, 0.0f, 1.0f) * 5.0f;
+            lightP[idx].c2 = 0.1f; // Explosión de luz más grande para llenar el ancho
         } else {
-            lightP[idx].diffuse = glm::vec3(0.0f, 1.5f, 0.2f); // VERDE MATRIX
-            lightP[idx].c2 = 0.8f;
+            lightP[idx].diffuse = glm::vec3(0.0f, 1.5f, 0.2f);
+            lightP[idx].c2 = 0.6f; // Atenuación suave para que se vea desde lejos
         }
 
         lightP[idx].specular = glm::vec3(1.0f);
@@ -1119,42 +1109,46 @@ void configurarLuzPuntual(int index, glm::vec3 pos, glm::vec3 colorDiff, float c
 }
 
 void dibujarSuelo(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
-    float escalaSuelo = 5.0f;
-    for (int i = 0; i < 5; i++) {
-        float zPos = -20.0f + (i * 10.0f);
-        for (int j = 0; j < 2; j++) {
-            float xPos = (j == 0) ? -5.0f : 5.0f;
-            glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
-                                  * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-            drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
-        }
-    }
+   float escalaSuelo = 5.0f;
+   float tamanoLosa = 10.0f;
+   for (int i = 0; i < 10; i++) {
+      float zPos = -45.0f + (i * tamanoLosa);
+      for (int j = 0; j < 4; j++) {
+         float xPos = -15.0f + (j * tamanoLosa);
+
+         glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
+                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
+         drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+      }
+   }
 }
 
 void dibujarTecho(glm::mat4 P, glm::mat4 V, float nivelTecho) {
-    float escalaSuelo = 5.0f; // Misma escala base que el suelo
-    for (int i = 0; i < 5; i++) {
-        float zPos = -20.0f + (i * 10.0f);
-        for (int j = 0; j < 2; j++) {
-            float xPos = (j == 0) ? -5.0f : 5.0f;
-            glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
-                                  * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
-                                  * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-            drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
-        }
-    }
+   float escalaSuelo = 5.0f;
+   float tamanoLosa = 10.0f;
+   for (int i = 0; i < 10; i++) {
+      float zPos = -45.0f + (i * tamanoLosa);
+      for (int j = 0; j < 4; j++) {
+         float xPos = -15.0f + (j * tamanoLosa);
+
+         glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
+                               * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
+                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
+         drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
+      }
+   }
 }
 
 void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
-    // Línea Central
-    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
-                          * glm::scale(I, glm::vec3(0.3, 1.0, 25));
-    drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
+   // CAMBIO: Escala Z de 25 a 50 (Total 100 de largo)
+   glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, 0.0))
+                         * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
+   drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
 
-    // Suciedad / Decal
-    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
-                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
-    drawObjectTex(plane, texRuby, P, V, Suciedad);
+   // Suciedad (puedes moverla si quieres, o dejarla ahí)
+   glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
+                      * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
+   drawObjectTex(plane, texRuby, P, V, Suciedad);
 }
 
 void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaParedY, int &luzIndex) {
@@ -1164,8 +1158,8 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float e
 
     // Configuración Loop
     float pasoZ = 10.0f;
-    float zInicioPared = -20.0f;
-    int numBloquesZ = 5;
+    float zInicioPared = -45.0f;
+    int numBloquesZ = 10;
     float escalaBloqueZ = 5.0f;
 
     // Configuración Luces/Neon
@@ -1226,20 +1220,41 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float e
 }
 
 void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float yCentroPared, float escalaParedY) {
-    glm::vec3 escalaParedesCierre = glm::vec3(10.5f, escalaParedY, 0.5f);
+   float escalaAnchoPanel = 5.25f;
+   float anchoRealPanel = 2.0f * escalaAnchoPanel; // 10.5f
 
-    // Pared Trasera (Fondo)
-    glm::vec3 posFondo = glm::vec3(0.0f, yCentroPared, -25.0f);
-    glm::mat4 M_Fondo = glm::translate(I, posFondo) * glm::scale(I, escalaParedesCierre);
-    drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
+   // Hacemos un bucle para colocar 4 paneles uno al lado del otro
+   for(int i = 0; i < 4; i++) {
 
-    // Pared Delantera (Frente)
-    glm::vec3 posFrente = glm::vec3(0.0f, yCentroPared, 25.0f);
-    glm::mat4 M_Frente = glm::translate(I, posFrente)
-                       * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
-                       * glm::scale(I, escalaParedesCierre);
-    drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
+      // Calculamos la posición X para centrarlos:
+      // i=0 -> -15.75
+      // i=1 -> -5.25
+      // i=2 -> +5.25
+      // i=3 -> +15.75
+      float xPos = -15.75f + (i * anchoRealPanel);
+
+      // --- PARED TRASERA (FONDO) ---
+      // Z fija en -50.0
+      glm::vec3 posFondo = glm::vec3(xPos, yCentroPared, -50.0f);
+
+      glm::mat4 M_Fondo = glm::translate(I, posFondo)
+                        * glm::scale(I, glm::vec3(escalaAnchoPanel, escalaParedY, 0.5f));
+
+      drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
+
+
+      // --- PARED DELANTERA (FRENTE) ---
+      // Z fija en +50.0
+      glm::vec3 posFrente = glm::vec3(xPos, yCentroPared, 50.0f);
+
+      glm::mat4 M_Frente = glm::translate(I, posFrente)
+                         * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
+                         * glm::scale(I, glm::vec3(escalaAnchoPanel, escalaParedY, 0.5f));
+
+      drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
+   }
 }
+
 
 void drawEscenario(glm::mat4 P, glm::mat4 V)
 {
