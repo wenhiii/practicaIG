@@ -271,7 +271,8 @@ void configScene()
    imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
    imgAxiomWall_Albedo.initTexture("resources/textures/scifi_panel_1_color_1k.png");
    imgAxiomWall_Normal.initTexture("resources/textures/scifi_panel_1_normal_1k.png");
-   imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_roughness_1k.png");
+   //imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_roughness_1k.png");
+   imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_metallic_1k.png");
    // imgAxiomWall_AO.initTexture("resources/textures/scifi_panel_1_ao_4k.png");
    // imgAxiomWall_Metallic.initTexture("resources/textures/scifi_panel_1_metallic_4k.png");
    // imgAxiomWall_Height.initTexture("resources/textures/scifi_panel_1_height_4k.png");
@@ -417,7 +418,7 @@ void configScene()
    texAxiomFloor.specular = imgFloorSpec.getTexture();
    texAxiomFloor.emissive = imgNoEmissive.getTexture();
    texAxiomFloor.normal = imgFloorNormal.getTexture();
-   texAxiomFloor.shininess = 128.0;
+   texAxiomFloor.shininess = 32.0;
 
    texAxiomWall.diffuse  = imgAxiomWall_Albedo.getTexture();
    texAxiomWall.specular = imgAxiomWall_Roughness.getTexture(); // Usamos roughness aquí
@@ -1243,13 +1244,13 @@ void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float yCentroPared, float es
       drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
 
 
-      // --- PARED DELANTERA (FRENTE) ---
-      // Z fija en +50.0
+
+      // --- PARED DELANTERA (FRENTE) Z = 50.0 ---
       glm::vec3 posFrente = glm::vec3(xPos, yCentroPared, 50.0f);
 
+
       glm::mat4 M_Frente = glm::translate(I, posFrente)
-                         * glm::rotate(I, glm::radians(180.0f), glm::vec3(0.0, 1.0, 0.0))
-                         * glm::scale(I, glm::vec3(escalaAnchoPanel, escalaParedY, 0.5f));
+                         * glm::scale(I, glm::vec3(-escalaAnchoPanel, escalaParedY, -0.5f));
 
       drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
    }
