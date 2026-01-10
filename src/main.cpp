@@ -51,7 +51,7 @@ const float ANCHO_PASILLO  = 20.5f;
 
 // Configuración de Luces (Límites de Arrays)
 #define NLD 1   // Luces Direccionales (Sol)
-#define NLP 50  // Luces Posicionales (Lámparas, efectos)
+#define NLP 41  // Luces Posicionales (Lámparas, efectos)
 #define NLF 5   // Luces Focales (Linternas, Ojos)
 
 // =========================================================================
@@ -1093,7 +1093,7 @@ void animacionDiagonalParedes()
     // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente - Muro Alto)
     // -------------------------------------------------------------------------
     int lucesSerpiente = 15;
-    int baseIdx = 10;
+    int baseIdx = 11;
 
     for(int i = 0; i < lucesSerpiente; i++)
     {
@@ -1162,7 +1162,7 @@ void animacionDiagonalParedes()
     // -------------------------------------------------------------------------
     // GRUPO 2: PARED DERECHA (Lluvia de Datos Matrix)
     // -------------------------------------------------------------------------
-    int baseIdxDer = 25;
+    int baseIdxDer = 26;
     int lucesLluvia = 15;
 
     for(int i = 0; i < lucesLluvia; i++)
@@ -1253,48 +1253,36 @@ void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
 }
 
 void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
-    int luzIndex = 1; // Empezamos a configurar luces desde la 1
-    float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
-    float escalaY = ALTO_PARED / 2.0f; // La escala del cubo es la mitad de la altura total
+   float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
+   float escalaY = ALTO_PARED / 2.0f;
 
-    // Dibujamos 5 bloques de pared a lo largo del pasillo
-    for (int i = 0; i < 5; i++) {
-        float zPos = -45.0f + (i * 20.0f);
+   // Solo dibujamos geometría visual
+   for (int i = 0; i < 5; i++) {
+      float zPos = -45.0f + (i * 20.0f);
 
-        // --- LADO IZQUIERDO Y DERECHO ---
-        // Usamos un loop simple: k=-1 (Izquierda), k=1 (Derecha)
-        for(int k = -1; k <= 1; k += 2) {
-            float xPos = k * ANCHO_PASILLO;
+      for(int k = -1; k <= 1; k += 2) {
+         float xPos = k * ANCHO_PASILLO;
 
-            // 1. Pared Grande
-            glm::mat4 M = glm::translate(I, glm::vec3(xPos, yCentro, zPos))
-                        * glm::scale(I, glm::vec3(0.5f, escalaY, 10.0f));
-            drawObjectTex(cube, texAxiomWall, P, V, M);
+         // 1. Pared Grande
+         glm::mat4 M = glm::translate(I, glm::vec3(xPos, yCentro, zPos))
+                     * glm::scale(I, glm::vec3(0.5f, escalaY, 10.0f));
+         drawObjectTex(cube, texAxiomWall, P, V, M);
 
-            // 2. Neón Vertical
-            float xNeon = xPos - (k * 0.6f); // Un poco hacia adentro
-            glm::mat4 M_Neon = glm::translate(I, glm::vec3(xNeon, yCentro, zPos))
-                             * glm::scale(I, glm::vec3(0.05f, escalaY * 0.96f, 0.05f));
-            drawObjectTex(cube, texZocaloLed, P, V, M_Neon);
+         // 2. Neón Vertical
+         float xNeon = xPos - (k * 0.6f);
+         glm::mat4 M_Neon = glm::translate(I, glm::vec3(xNeon, yCentro, zPos))
+                          * glm::scale(I, glm::vec3(0.05f, escalaY * 0.96f, 0.05f));
+         drawObjectTex(cube, texZocaloLed, P, V, M_Neon);
 
-            // 3. Zócalo (Base)
-            float xZocalo = xPos - (k * 0.55f);
-            glm::mat4 M_Zoc = glm::translate(I, glm::vec3(xZocalo, SUELO_Y + 0.5f, zPos))
-                            * glm::scale(I, glm::vec3(0.1f, 0.5f, 10.0f));
-            drawObjectTex(cube, texZocaloLed, P, V, M_Zoc);
+         // 3. Zócalo (Base)
+         float xZocalo = xPos - (k * 0.55f);
+         glm::mat4 M_Zoc = glm::translate(I, glm::vec3(xZocalo, SUELO_Y + 0.5f, zPos))
+                         * glm::scale(I, glm::vec3(0.1f, 0.5f, 10.0f));
+         drawObjectTex(cube, texZocaloLed, P, V, M_Zoc);
 
-            // 4. Luces Puntuales (Lógica)
-            // Ponemos 3 luces por columna de pared
-            for(int h = -1; h <= 1; h++) {
-                if(luzIndex < NLP) {
-                    lightP[luzIndex].position = glm::vec3(xPos - (k * 1.2f), yCentro + (h * 8.0f), zPos);
-                    lightP[luzIndex].diffuse  = glm::vec3(0.0f, 1.0f, 1.0f); // Color Cyan
-                    lightP[luzIndex].c2       = 0.4f; // Atenuación
-                    luzIndex++;
-                }
-            }
-        }
-    }
+
+      }
+   }
 }
 
 void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
