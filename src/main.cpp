@@ -52,7 +52,7 @@ const float ANCHO_PASILLO  = 20.5f;
 // Configuración de Luces (Límites de Arrays)
 #define NLD 1   // Luces Direccionales (Sol)
 #define NLP 50  // Luces Posicionales (Lámparas, efectos)
-#define NLF 6   // Luces Focales (Linternas, Ojos)
+#define NLF 4   // Luces Focales (Linternas, Ojos)
 
 // =========================================================================
 // 2. SISTEMAS Y SHADERS
@@ -440,28 +440,8 @@ void configScene()
    }
 
    // --- Focales (Spotlights) ---
-   // F[0]
-   lightF[0].position    = glm::vec3(-2.0, 2.0, 5.0);
-   lightF[0].direction   = glm::vec3( 2.0, -2.0, -5.0);
-   lightF[0].ambient     = glm::vec3(0.2f);
-   lightF[0].diffuse     = glm::vec3(0.9f);
-   lightF[0].specular    = glm::vec3(0.9f);
-   lightF[0].innerCutOff = 10.0f;
-   lightF[0].outerCutOff = 15.0f;
-   lightF[0].c0 = 1.0f; lightF[0].c1 = 0.09f; lightF[0].c2 = 0.032f;
-
-   // F[1]
-   lightF[1].position    = glm::vec3( 2.0, 2.0, 5.0);
-   lightF[1].direction   = glm::vec3(-2.0, -2.0, -5.0);
-   lightF[1].ambient     = glm::vec3(0.2f);
-   lightF[1].diffuse     = glm::vec3(0.9f);
-   lightF[1].specular    = glm::vec3(0.9f);
-   lightF[1].innerCutOff = 5.0f;
-   lightF[1].outerCutOff = 6.0f;
-   lightF[1].c0 = 1.0f; lightF[1].c1 = 0.09f; lightF[1].c2 = 0.032f;
-
    // Ojos
-   for(int i = 2; i <= 3; i++){
+   for(int i = 0; i <= 1; i++){
        lightF[i].ambient     = glm::vec3(0.0f);
        lightF[i].diffuse     = glm::vec3(0.8, 0.7, 0.2);
        lightF[i].specular    = glm::vec3(0.8, 0.7, 0.2);
@@ -471,7 +451,7 @@ void configScene()
    }
 
    // Sirena
-   for(int i = 4; i <= 5; i++){
+   for(int i = 2; i <= 3; i++){
        lightF[i].ambient     = glm::vec3(0.0f);
        lightF[i].diffuse     = glm::vec3(0.9f);
        lightF[i].specular    = glm::vec3(0.9f);
@@ -587,12 +567,6 @@ void setLights(glm::mat4 P, glm::mat4 V)
    for (int i = 0; i < 1; i++)
    {
       glm::mat4 M = glm::translate(I, lightP[i].position) * glm::scale(I, glm::vec3(0.1));
-      drawObjectMat(sphere, mluz, P, V, M);
-   }
-
-   for (int i = 0; i < 2; i++)
-   {
-      glm::mat4 M = glm::translate(I, lightF[i].position) * glm::scale(I, glm::vec3(0.025));
       drawObjectMat(sphere, mluz, P, V, M);
    }
 }
@@ -805,15 +779,15 @@ void drawSirena(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    glm::mat4 M_Pos1 = M * Televacion * T_Centro * R1 * T_Radio;
 
    drawObjectMat(sphere, mluz, P, V, M_Pos1 * S);
-   lightF[4].position  = glm::vec3(M_Pos1 * glm::vec4(0.0, 0.0, 0.0, 1.0));
-   lightF[4].direction = glm::normalize(glm::vec3(M * Televacion * R1 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
+   lightF[2].position  = glm::vec3(M_Pos1 * glm::vec4(0.0, 0.0, 0.0, 1.0));
+   lightF[2].direction = glm::normalize(glm::vec3(M * Televacion * R1 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
 
    glm::mat4 R2 = glm::rotate(I, glm::radians(anguloSirena + 180.0f), glm::vec3(0.0, 1.0, 0.0));
    glm::mat4 M_Pos2 = M * Televacion * T_Centro * R2 * T_Radio;
 
    drawObjectMat(sphere, mluz, P, V, M_Pos2 * S);
-   lightF[5].position  = glm::vec3(M_Pos2 * glm::vec4(0.0, 0.0, 0.0, 1.0));
-   lightF[5].direction = glm::normalize(glm::vec3(M * Televacion * R2 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
+   lightF[3].position  = glm::vec3(M_Pos2 * glm::vec4(0.0, 0.0, 0.0, 1.0));
+   lightF[3].direction = glm::normalize(glm::vec3(M * Televacion * R2 * glm::vec4(1.0, 0.0, 0.0, 0.0)));
 
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -974,11 +948,11 @@ void luzOjos(glm::mat4 M){
    glm::vec4 posOjoDer = glm::vec4(8.0f, 60.0f, 26.6f, 1.0f);
    glm::vec4 direccionOjos = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 
-   lightF[2].position  = glm::vec3(Mcabeza * posOjoIzq);
-   lightF[2].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
+   lightF[0].position  = glm::vec3(Mcabeza * posOjoIzq);
+   lightF[0].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
 
-   lightF[3].position  = glm::vec3(Mcabeza * posOjoDer);
-   lightF[3].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
+   lightF[1].position  = glm::vec3(Mcabeza * posOjoDer);
+   lightF[1].direction = glm::normalize(glm::vec3(Mcabeza * direccionOjos));
 }
 
 void animacionHyperScanner()
