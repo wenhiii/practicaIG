@@ -35,17 +35,75 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods);
 void funScroll(GLFWwindow *window, double xoffset, double yoffset);
 void funCursorPos(GLFWwindow *window, double xpos, double ypos);
 
-// Shaders
+// =========================================================================
+// 1. CONFIGURACIÓN Y CONSTANTES
+// =========================================================================
+
+// Dimensiones del Viewport
+int w = 500;
+int h = 500;
+
+// Configuración del Escenario (Constantes Físicas)
+const float SUELO_Y            = -2.0f;
+const float TECHO_Y            = 22.0f;
+const float ALTO_PARED         = 24.0f;
+const float ANCHO_PASILLO_REAL = 20.5f;
+float anchoPasillo             = 20.0f;
+
+// Definición de Luces (Cantidad)
+#define NLD 1   // Luces Direccionales
+#define NLP 50  // Luces Posicionales (Puntuales)
+#define NLF 6   // Luces Focales (Spotlights)
+
+// =========================================================================
+// 2. SISTEMAS Y SHADERS
+// =========================================================================
 Shaders shaders;
 
-// Modelos
+// =========================================================================
+// 3. CÁMARA (CONTROL Y ESTADO)
+// =========================================================================
+// Configuración
+float fovy          = 60.0f;
+float sensitivity   = 0.5f;
+bool  firstClick    = true;
+bool  modoF5        = false; // true = 3ra persona, false = 1ra persona
+
+// Estado del Ratón
+double lastX = 0.0;
+double lastY = 0.0;
+
+// Vectores y Orientación (Cámara Libre)
+float alphaX = -90.0f; // Mirando hacia -Z por defecto
+float alphaY = 0.0f;
+glm::vec3 cameraPos   = glm::vec3(0.0f, 2.0f, 15.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+
+// =========================================================================
+// 4. LUCES Y MATERIALES BASE
+// =========================================================================
+// Estructuras de Luces
+Light lightG;           // Global / Ambiente
+Light lightD[NLD];      // Sol / Direccional
+Light lightP[NLP];      // Puntos de luz (LEDs, Neones)
+Light lightF[NLF];      // Linternas / Ojos
+
+// Materiales sin textura (Propiedades puras)
+Material mluz;
+Material mOjo;
+Material mNeon;
+
+// =========================================================================
+// 5. RECURSOS: MODELOS 3D (.OBJ)
+// =========================================================================
+// -- Primitivas y Escenario --
 Model sphere;
 Model plane;
 Model cube;
-
 Model signal;
 
-// M-O
+// -- Robot M-O (Jerarquía) --
 Model aspiradora;
 Model brazoDerecho;
 Model brazoIzquierdo;
@@ -63,7 +121,10 @@ Model tapaAspiradora;
 Model tapaCasco;
 Model tapaSirena;
 
-// Imagenes (texturas)
+// =========================================================================
+// 6. RECURSOS: IMÁGENES (TEXTURAS RAW)
+// =========================================================================
+// -- Materiales Generales --
 Texture imgNoEmissive;
 Texture imgWhiteMetal;
 Texture imgGreyMetal;
@@ -71,21 +132,18 @@ Texture imgBlackMetal;
 Texture imgBlackRubber;
 Texture imgBlueGlass;
 Texture imgRedGlass;
-
-// Imagenes TEXTURA ESCENARIO
 Texture imgRuby;
+
+// -- Escenario (PBR / Sci-Fi) --
+// Suelo
 Texture imgAxiomFloor;
 Texture imgFloorNormal;
 Texture imgFloorSpec;
 
-Texture imgAxiomWall_Albedo;    // Reemplaza a la antigua difusa
-Texture imgAxiomWall_Normal;    // Reemplaza a la antigua normal
-Texture imgAxiomWall_Roughness; // Se usará para el slot 'specular'
-
-// [NUEVO - COMENTADO] El resto de texturas del set, disponibles para el futuro
-// Texture imgAxiomWall_AO;       // Ambient Occlusion
-// Texture imgAxiomWall_Metallic; // Metallic
-// Texture imgAxiomWall_Height;   // Height / Displacement
+// Paredes y Techo
+Texture imgAxiomWall_Albedo;
+Texture imgAxiomWall_Normal;
+Texture imgAxiomWall_Roughness;
 
 Texture imgCeiling_Color;
 Texture imgCeiling_Normal;
@@ -96,34 +154,28 @@ Texture imgOrganic_Albedo;
 Texture imgOrganic_Normal;
 Texture imgOrganic_Roughness;
 
-
+// Señalética
 Texture signal_BaseColor;
 Texture signal_Roughness;
 Texture signal_Metallic;
 Texture signal_Normal;
 Texture signal_AO;
 
+// =========================================================================
+// 7. MATERIALES COMPUESTOS (SETS DE TEXTURAS)
+// =========================================================================
+// Estos agrupan Diffuse, Specular, Normal, etc. para el Shader
 
-// Luces y materiales
-#define NLD 1
-#define NLP 50
-#define NLF 6
-Light lightG;
-Light lightD[NLD];
-Light lightP[NLP];
-Light lightF[NLF];
-Material mluz;
-Material mOjo;
-Material mNeon;
-
-// TEXTURA ESCENARIO
+// -- Sets Escenario --
 Textures texAxiomFloor;
 Textures texAxiomWall;
 Textures texZocaloLed;
 Textures texRuby;
 Textures texCeiling;
 Textures texOrganicWall;
+Textures texSignal;
 
+// -- Sets Robot --
 Textures texWhiteMetal;
 Textures texGreyMetal;
 Textures texBlackMetal;
@@ -131,57 +183,32 @@ Textures texBlackRubber;
 Textures texBlueGlass;
 Textures texRedGlass;
 
-Textures texSignal;
+// =========================================================================
+// 8. ESTADO DEL JUEGO Y ANIMACIONES (ROBOT)
+// =========================================================================
+// Posición y Orientación
+float posX          = 0.0f;
+float posZ          = 0.0f;
+float anguloGiro    = 0.0f;
+float inclinacionX  = 0.0f;
+float inclinacionZ  = 0.0f;
+glm::mat4 rotRueda  = I; // Matriz acumulada de rotación
 
-
-//  Ancho del pasillo
-float anchoPasillo = 20.0f;
-
-// Viewport
-int w = 500;
-int h = 500;
-
-// --------------------------------------------------------
-// VARIABLES DE CAMARA (FPS / LIBRE)
-// --------------------------------------------------------
-float fovy = 60.0;
-
-// [CAMBIO] Iniciamos alphaX en -90 para mirar hacia -Z
-float alphaX = -90.0f;
-float alphaY = 0.0f;
-
-// [NUEVO] Vectores para cámara libre
-glm::vec3 cameraPos   = glm::vec3(0.0f, 2.0f, 15.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-
-double lastX = 0.0;
-double lastY = 0.0;
-bool firstClick = true;
-float sensitivity = 0.5f;
-
-// Movimiento M-O
+// Variables de Animación
 float anguloAspiradora = 0.0f;
-float anguloBrazos = 0.0f;
-float anguloSirena = 0.0f;
-float alturaSirena = -7.42f;
-float anguloGiro = 0.0f;
-float posX = 0.0f;
-float posZ = 0.0f;
-float inclinacionX = 0.0f;
-float inclinacionZ = 0.0f;
-glm::mat4 rotRueda = I;
+float anguloBrazos     = 0.0f;
+float anguloSirena     = 0.0f;
+float alturaSirena     = -7.42f;
 
-bool animacionActiva = false;
-bool sirenaLevantada = false;
+// Flags de Control (Inputs)
+bool animacionActiva   = false;
+bool sirenaLevantada   = false;
 bool giroIzq = false;
 bool giroDer = false;
-bool movW = false;
-bool movS = false;
-bool movA = false;
-bool movD = false;
-
-bool modoF5 = false;
+bool movW    = false;
+bool movS    = false;
+bool movA    = false;
+bool movD    = false;
 
 int main()
 {
@@ -237,298 +264,302 @@ int main()
 
 void configScene()
 {
-   // Test de profundidad
+   // ==========================================
+   // 1. AJUSTES GLOBALES
+   // ==========================================
    glEnable(GL_DEPTH_TEST);
-
-   // Transparencias
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-   // Shaders
    shaders.initShaders("resources/shaders/vshader.glsl", "resources/shaders/fshader.glsl");
 
-   // Modelos
-   sphere.initModel("resources/models/sphere.obj");
-   plane.initModel("resources/models/plane.obj");
-   cube.initModel("resources/models/cube.obj");
-   signal.initModel("resources/models/Sign.obj");
+   // ==========================================
+   // 2. MODELOS (.OBJ)
+   // ==========================================
+   // Escenario
+   sphere.initModel( "resources/models/sphere.obj");
+   plane.initModel(  "resources/models/plane.obj");
+   cube.initModel(   "resources/models/cube.obj");
+   signal.initModel( "resources/models/Sign.obj");
 
-   // M-O
-   aspiradora.initModel("resources/models/aspiradora.obj");
-   brazoDerecho.initModel("resources/models/brazoDerecho.obj");
-   brazoIzquierdo.initModel("resources/models/brazoIzquierdo.obj");
-   cara.initModel("resources/models/cara.obj");
-   casco.initModel("resources/models/casco.obj");
-   cristalSirena.initModel("resources/models/cristalSirena.obj");
-   cubreRueda.initModel("resources/models/cubreRueda.obj");
-   cuello.initModel("resources/models/cuello.obj");
-   cuerpo.initModel("resources/models/cuerpo.obj");
-   ejeBrazoDerecho.initModel("resources/models/ejeBrazoDerecho.obj");
+   // Robot (M-O)
+   aspiradora.initModel(       "resources/models/aspiradora.obj");
+   brazoDerecho.initModel(     "resources/models/brazoDerecho.obj");
+   brazoIzquierdo.initModel(   "resources/models/brazoIzquierdo.obj");
+   cara.initModel(             "resources/models/cara.obj");
+   casco.initModel(            "resources/models/casco.obj");
+   cristalSirena.initModel(    "resources/models/cristalSirena.obj");
+   cubreRueda.initModel(       "resources/models/cubreRueda.obj");
+   cuello.initModel(           "resources/models/cuello.obj");
+   cuerpo.initModel(           "resources/models/cuerpo.obj");
+   ejeBrazoDerecho.initModel(  "resources/models/ejeBrazoDerecho.obj");
    ejeBrazoIzquierdo.initModel("resources/models/ejeBrazoIzquierdo.obj");
-   mochila.initModel("resources/models/mochila.obj");
-   rueda.initModel("resources/models/rueda.obj");
-   tapaAspiradora.initModel("resources/models/tapaAspiradora.obj");
-   tapaCasco.initModel("resources/models/tapaCasco.obj");
-   tapaSirena.initModel("resources/models/tapaSirena.obj");
+   mochila.initModel(          "resources/models/mochila.obj");
+   rueda.initModel(            "resources/models/rueda.obj");
+   tapaAspiradora.initModel(   "resources/models/tapaAspiradora.obj");
+   tapaCasco.initModel(        "resources/models/tapaCasco.obj");
+   tapaSirena.initModel(       "resources/models/tapaSirena.obj");
 
-   // Imagenes (texturas)
-   imgNoEmissive.initTexture("resources/textures/imgNoEmissive.png");
-   imgRuby.initTexture("resources/textures/imgRuby.png");
-   imgWhiteMetal.initTexture("resources/textures/whiteMetal.jpg");
-   imgGreyMetal.initTexture("resources/textures/greyMetal.jpg");
-   imgBlackMetal.initTexture("resources/textures/blackMetal.jpg");
-   imgBlackRubber.initTexture("resources/textures/blackRubber.jpg");
-   imgBlueGlass.initTexture("resources/textures/blueGlass.png");
-   imgRedGlass.initTexture("resources/textures/redGlass.png");
+   // ==========================================
+   // 3. TEXTURAS (Carga de imágenes)
+   // ==========================================
+   // Materiales Generales
+   imgNoEmissive.initTexture(  "resources/textures/imgNoEmissive.png");
+   imgRuby.initTexture(        "resources/textures/imgRuby.png");
+   imgWhiteMetal.initTexture(  "resources/textures/whiteMetal.jpg");
+   imgGreyMetal.initTexture(   "resources/textures/greyMetal.jpg");
+   imgBlackMetal.initTexture(  "resources/textures/blackMetal.jpg");
+   imgBlackRubber.initTexture( "resources/textures/blackRubber.jpg");
+   imgBlueGlass.initTexture(   "resources/textures/blueGlass.png");
+   imgRedGlass.initTexture(    "resources/textures/redGlass.png");
 
-   // Texturas escenario
-   imgAxiomFloor.initTexture("resources/textures/Scifi_Hex_Wall_Difusse.jpg");
-   imgFloorNormal.initTexture("resources/textures/Scifi_Hex_Wall_normal.jpg");
-   imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
-   imgAxiomWall_Albedo.initTexture("resources/textures/scifi_panel_1_color_1k.png");
-   imgAxiomWall_Normal.initTexture("resources/textures/scifi_panel_1_normal_1k.png");
-   //imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_roughness_1k.png");
-   imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_metallic_1k.png");
-   // imgAxiomWall_AO.initTexture("resources/textures/scifi_panel_1_ao_4k.png");
-   // imgAxiomWall_Metallic.initTexture("resources/textures/scifi_panel_1_metallic_4k.png");
-   // imgAxiomWall_Height.initTexture("resources/textures/scifi_panel_1_height_4k.png");
+   // Texturas Escenario (Axiom)
+   imgAxiomFloor.initTexture(       "resources/textures/Scifi_Hex_Wall_Difusse.jpg");
+   imgFloorNormal.initTexture(      "resources/textures/Scifi_Hex_Wall_normal.jpg");
+   imgFloorSpec.initTexture(        "resources/textures/Scifi_Hex_Wall_specular.jpg");
 
-   imgCeiling_Color.initTexture("resources/textures/floor_tile_1_color.png");
-   imgCeiling_Normal.initTexture("resources/textures/floor_tile_1_normal.png");
-   imgCeiling_Roughness.initTexture("resources/textures/floor_tile_1_roughness.png");
-   // imgCeiling_AO.initTexture("resources/textures/floor_tile_1_ao.png"); // Opcional
+   imgAxiomWall_Albedo.initTexture(    "resources/textures/scifi_panel_1_color_1k.png");
+   imgAxiomWall_Normal.initTexture(    "resources/textures/scifi_panel_1_normal_1k.png");
+   imgAxiomWall_Roughness.initTexture( "resources/textures/scifi_panel_1_metallic_1k.png"); // Metallic/Roughness
 
-   imgOrganic_Albedo.initTexture("resources/textures/organic_tech_1_color_1k.png");
-   imgOrganic_Normal.initTexture("resources/textures/organic_tech_1_normal_1k.png");
-   imgOrganic_Roughness.initTexture("resources/textures/organic_tech_1_roughness_1k.png");
+   imgCeiling_Color.initTexture(       "resources/textures/floor_tile_1_color.png");
+   imgCeiling_Normal.initTexture(      "resources/textures/floor_tile_1_normal.png");
+   imgCeiling_Roughness.initTexture(   "resources/textures/floor_tile_1_roughness.png");
 
-   signal_BaseColor.initTexture("resources/textures/sign_basecolor.png");
-   signal_Roughness.initTexture("resources/textures/sign_roughness.png");
-   signal_Normal.initTexture("resources/textures/sign_normal.png");
+   imgOrganic_Albedo.initTexture(      "resources/textures/organic_tech_1_color_1k.png");
+   imgOrganic_Normal.initTexture(      "resources/textures/organic_tech_1_normal_1k.png");
+   imgOrganic_Roughness.initTexture(   "resources/textures/organic_tech_1_roughness_1k.png");
 
-   // Configuracion texturas materiales
-   texZocaloLed.diffuse  = imgWhiteMetal.getTexture();
-   texZocaloLed.specular = imgWhiteMetal.getTexture();
-   texZocaloLed.emissive = imgWhiteMetal.getTexture();
-   texZocaloLed.normal   = 0;
-   texZocaloLed.shininess = 23.0;
+   signal_BaseColor.initTexture(       "resources/textures/sign_basecolor.png");
+   signal_Roughness.initTexture(       "resources/textures/sign_roughness.png");
+   signal_Normal.initTexture(          "resources/textures/sign_normal.png");
 
-   texAxiomWall.diffuse  = imgAxiomWall_Albedo.getTexture();
-   texAxiomWall.specular = imgAxiomWall_Roughness.getTexture(); // Usamos roughness aquí
-   texAxiomWall.emissive = imgNoEmissive.getTexture();
-   texAxiomWall.normal   = imgAxiomWall_Normal.getTexture();
-   // Puedes necesitar ajustar el shininess dependiendo de cómo interprete tu shader el mapa de roughness.
-   // Si se ve muy brillante, prueba a bajarlo (ej. 10.0). Si se ve muy mate, súbelo.
-   texAxiomWall.shininess = 30.0;
+   // ==========================================
+   // 4. CONFIGURACIÓN DE MATERIALES
+   // ==========================================
 
-   // Luz ambiental global
+   // Zocalo Led
+   texZocaloLed.diffuse   = imgWhiteMetal.getTexture();
+   texZocaloLed.specular  = imgWhiteMetal.getTexture();
+   texZocaloLed.emissive  = imgWhiteMetal.getTexture();
+   texZocaloLed.normal    = 0;
+   texZocaloLed.shininess = 23.0f;
+
+   // Pared Axiom (Unificado)
+   texAxiomWall.diffuse   = imgAxiomWall_Albedo.getTexture();
+   texAxiomWall.specular  = imgAxiomWall_Roughness.getTexture();
+   texAxiomWall.emissive  = imgNoEmissive.getTexture();
+   texAxiomWall.normal    = imgAxiomWall_Normal.getTexture();
+   texAxiomWall.shininess = 50.0f; // Valor final ajustado
+
+   // Metales y Gomas
+   texWhiteMetal.diffuse   = imgWhiteMetal.getTexture();
+   texWhiteMetal.specular  = imgWhiteMetal.getTexture();
+   texWhiteMetal.emissive  = imgNoEmissive.getTexture();
+   texWhiteMetal.normal    = 0;
+   texWhiteMetal.shininess = 64.0f;
+
+   texGreyMetal.diffuse    = imgGreyMetal.getTexture();
+   texGreyMetal.specular   = imgGreyMetal.getTexture();
+   texGreyMetal.emissive   = imgNoEmissive.getTexture();
+   texGreyMetal.normal     = 0;
+   texGreyMetal.shininess  = 100.0f;
+
+   texBlackMetal.diffuse   = imgBlackMetal.getTexture();
+   texBlackMetal.specular  = imgBlackMetal.getTexture();
+   texBlackMetal.emissive  = imgNoEmissive.getTexture();
+   texBlackMetal.normal    = 0;
+   texBlackMetal.shininess = 32.0f;
+
+   texBlackRubber.diffuse   = imgBlackRubber.getTexture();
+   texBlackRubber.specular  = imgBlackRubber.getTexture();
+   texBlackRubber.emissive  = imgNoEmissive.getTexture();
+   texBlackRubber.normal    = 0;
+   texBlackRubber.shininess = 10.0f;
+
+   // Cristales
+   texBlueGlass.diffuse   = imgBlueGlass.getTexture();
+   texBlueGlass.specular  = imgBlueGlass.getTexture();
+   texBlueGlass.emissive  = imgBlueGlass.getTexture();
+   texBlueGlass.normal    = 0;
+   texBlueGlass.shininess = 128.0f;
+
+   texRedGlass.diffuse    = imgRedGlass.getTexture();
+   texRedGlass.specular   = imgRedGlass.getTexture();
+   texRedGlass.emissive   = imgRedGlass.getTexture();
+   texRedGlass.normal     = 0;
+   texRedGlass.shininess  = 128.0f;
+
+   // Suelos y Techos
+   texAxiomFloor.diffuse   = imgAxiomFloor.getTexture();
+   texAxiomFloor.specular  = imgFloorSpec.getTexture();
+   texAxiomFloor.emissive  = imgNoEmissive.getTexture();
+   texAxiomFloor.normal    = imgFloorNormal.getTexture();
+   texAxiomFloor.shininess = 32.0f;
+
+   texCeiling.diffuse   = imgCeiling_Color.getTexture();
+   texCeiling.specular  = imgCeiling_Roughness.getTexture();
+   texCeiling.emissive  = imgNoEmissive.getTexture();
+   texCeiling.normal    = imgCeiling_Normal.getTexture();
+   texCeiling.shininess = 30.0f;
+
+   texOrganicWall.diffuse   = imgOrganic_Albedo.getTexture();
+   texOrganicWall.specular  = imgOrganic_Roughness.getTexture();
+   texOrganicWall.emissive  = imgNoEmissive.getTexture();
+   texOrganicWall.normal    = imgOrganic_Normal.getTexture();
+   texOrganicWall.shininess = 64.0f;
+
+   // Otros
+   texRuby.diffuse   = imgRuby.getTexture();
+   texRuby.specular  = imgRuby.getTexture();
+   texRuby.emissive  = imgNoEmissive.getTexture();
+   texRuby.normal    = 0;
+   texRuby.shininess = 128.0f;
+
+   texSignal.diffuse   = signal_BaseColor.getTexture();
+   texSignal.specular  = signal_Roughness.getTexture();
+   texSignal.normal    = signal_Normal.getTexture();
+   texSignal.shininess = 10.0f;
+
+   // Materiales sin texturas (Props)
+   mluz.ambient   = glm::vec4(0.0f);
+   mluz.diffuse   = glm::vec4(0.0f);
+   mluz.specular  = glm::vec4(0.0f);
+   mluz.emissive  = glm::vec4(1.0f);
+   mluz.shininess = 1.0f;
+
+   mOjo.ambient   = glm::vec4(0.2, 0.2, 0.0, 1.0);
+   mOjo.diffuse   = glm::vec4(0.9, 0.8, 0.2, 1.0);
+   mOjo.specular  = glm::vec4(0.0f);
+   mOjo.emissive  = glm::vec4(0.8, 0.7, 0.1, 1.0);
+   mOjo.shininess = 0.75f;
+
+   mNeon.ambient   = glm::vec4(0.0f);
+   mNeon.diffuse   = glm::vec4(0.0f);
+   mNeon.specular  = glm::vec4(1.0f);
+   mNeon.emissive  = glm::vec4(0.0, 0.9, 1.0, 1.0);
+   mNeon.shininess = 128.0f;
+
+   // ==========================================
+   // 5. CONFIGURACIÓN DE LUCES
+   // ==========================================
+
+   // --- Global ---
    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
 
-   // Luces direccionales
+   // --- Direccional ---
    lightD[0].direction = glm::vec3(0.0, -1.0, 0.0);
-   lightD[0].ambient = glm::vec3(0.1, 0.1, 0.1);
-   lightD[0].diffuse = glm::vec3(0.7, 0.7, 0.7);
-   lightD[0].specular = glm::vec3(0.7, 0.7, 0.7);
+   lightD[0].ambient   = glm::vec3(0.1f); // Usamos constructor corto si r=g=b
+   lightD[0].diffuse   = glm::vec3(0.7f);
+   lightD[0].specular  = glm::vec3(0.7f);
 
-   // Luces posicionales
+   // --- Posicionales ---
+   // P[0]: Principal
    lightP[0].position = glm::vec3(0.0, 4.0, 0.0);
-   lightP[0].ambient = glm::vec3(0.2, 0.2, 0.2);
-   lightP[0].diffuse = glm::vec3(0.9, 0.95, 1.0);
-   lightP[0].specular = glm::vec3(1.0, 1.0, 1.0);
-   lightP[0].c0 = 1.00; lightP[0].c1 = 0.09; lightP[0].c2 = 0.032;
+   lightP[0].ambient  = glm::vec3(0.2f);
+   lightP[0].diffuse  = glm::vec3(0.9, 0.95, 1.0);
+   lightP[0].specular = glm::vec3(1.0f);
+   lightP[0].c0 = 1.00f; lightP[0].c1 = 0.09f; lightP[0].c2 = 0.032f;
 
+   // Resto de posicionales (loops)
    for(int i = 1; i < NLP; i++) {
-      lightP[i].ambient = glm::vec3(0.0, 0.0, 0.0);
-      lightP[i].diffuse = glm::vec3(0.0, 0.8, 1.0);
-      lightP[i].specular = glm::vec3(0.0, 0.0, 0.0);
-      lightP[i].c0 = 1.0; lightP[i].c1 = 0.5; lightP[i].c2 = 0.8;
+      lightP[i].ambient  = glm::vec3(0.0f);
+      lightP[i].diffuse  = glm::vec3(0.0, 0.8, 1.0);
+      lightP[i].specular = glm::vec3(0.0f);
+      lightP[i].c0 = 1.0f; lightP[i].c1 = 0.5f; lightP[i].c2 = 0.8f;
    }
 
-   // Luces focales (Axiom + Ojos + Sirena)
-   lightF[0].position = glm::vec3(-2.0, 2.0, 5.0);
-   lightF[0].direction = glm::vec3(2.0, -2.0, -5.0);
-   lightF[0].ambient = glm::vec3(0.2, 0.2, 0.2);
-   lightF[0].diffuse = glm::vec3(0.9, 0.9, 0.9);
-   lightF[0].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[0].innerCutOff = 10.0; lightF[0].outerCutOff = 15.0;
-   lightF[0].c0 = 1.0; lightF[0].c1 = 0.09; lightF[0].c2 = 0.032;
+   // --- Focales (Spotlights) ---
+   // F[0]
+   lightF[0].position    = glm::vec3(-2.0, 2.0, 5.0);
+   lightF[0].direction   = glm::vec3( 2.0, -2.0, -5.0);
+   lightF[0].ambient     = glm::vec3(0.2f);
+   lightF[0].diffuse     = glm::vec3(0.9f);
+   lightF[0].specular    = glm::vec3(0.9f);
+   lightF[0].innerCutOff = 10.0f;
+   lightF[0].outerCutOff = 15.0f;
+   lightF[0].c0 = 1.0f; lightF[0].c1 = 0.09f; lightF[0].c2 = 0.032f;
 
-   lightF[1].position = glm::vec3(2.0, 2.0, 5.0);
-   lightF[1].direction = glm::vec3(-2.0, -2.0, -5.0);
-   lightF[1].ambient = glm::vec3(0.2, 0.2, 0.2);
-   lightF[1].diffuse = glm::vec3(0.9, 0.9, 0.9);
-   lightF[1].specular = glm::vec3(0.9, 0.9, 0.9);
-   lightF[1].innerCutOff = 5.0; lightF[1].outerCutOff = 6.0;
-   lightF[1].c0 = 1.0; lightF[1].c1 = 0.09; lightF[1].c2 = 0.032;
+   // F[1]
+   lightF[1].position    = glm::vec3( 2.0, 2.0, 5.0);
+   lightF[1].direction   = glm::vec3(-2.0, -2.0, -5.0);
+   lightF[1].ambient     = glm::vec3(0.2f);
+   lightF[1].diffuse     = glm::vec3(0.9f);
+   lightF[1].specular    = glm::vec3(0.9f);
+   lightF[1].innerCutOff = 5.0f;
+   lightF[1].outerCutOff = 6.0f;
+   lightF[1].c0 = 1.0f; lightF[1].c1 = 0.09f; lightF[1].c2 = 0.032f;
 
    // Ojos
-   for(int i=2; i<=3; i++){
-       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
-       lightF[i].diffuse = glm::vec3(0.8, 0.7, 0.2);
-       lightF[i].specular = glm::vec3(0.8, 0.7, 0.2);
-       lightF[i].innerCutOff = 15.0; lightF[i].outerCutOff = 25.0;
-       lightF[i].c0 = 1.0; lightF[i].c1 = 0.09; lightF[i].c2 = 0.032;
+   for(int i = 2; i <= 3; i++){
+       lightF[i].ambient     = glm::vec3(0.0f);
+       lightF[i].diffuse     = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].specular    = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].innerCutOff = 15.0f;
+       lightF[i].outerCutOff = 25.0f;
+       lightF[i].c0 = 1.0f; lightF[i].c1 = 0.09f; lightF[i].c2 = 0.032f;
    }
+
    // Sirena
-   for(int i=4; i<=5; i++){
-       lightF[i].ambient = glm::vec3(0.0, 0.0, 0.0);
-       lightF[i].diffuse = glm::vec3(0.9, 0.9, 0.9);
-       lightF[i].specular = glm::vec3(0.9, 0.9, 0.9);
-       lightF[i].innerCutOff = 20.0; lightF[i].outerCutOff = 30.0;
-       lightF[i].c0 = 1.0; lightF[i].c1 = 0.09; lightF[i].c2 = 0.032;
+   for(int i = 4; i <= 5; i++){
+       lightF[i].ambient     = glm::vec3(0.0f);
+       lightF[i].diffuse     = glm::vec3(0.9f);
+       lightF[i].specular    = glm::vec3(0.9f);
+       lightF[i].innerCutOff = 20.0f;
+       lightF[i].outerCutOff = 30.0f;
+       lightF[i].c0 = 1.0f; lightF[i].c1 = 0.09f; lightF[i].c2 = 0.032f;
    }
-
-   // Materiales
-   mluz.ambient = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mluz.diffuse = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mluz.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mluz.emissive = glm::vec4(1.0, 1.0, 1.0, 1.0);
-   mluz.shininess = 1.0;
-
-   mOjo.ambient = glm::vec4(0.2, 0.2, 0.0, 1.0);
-   mOjo.diffuse = glm::vec4(0.9, 0.8, 0.2, 1.0);
-   mOjo.specular = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mOjo.emissive = glm::vec4(0.8, 0.7, 0.1, 1.0);
-   mOjo.shininess = 0.75;
-
-   mNeon.ambient   = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mNeon.diffuse   = glm::vec4(0.0, 0.0, 0.0, 1.0);
-   mNeon.specular  = glm::vec4(1.0, 1.0, 1.0, 1.0);
-   mNeon.emissive  = glm::vec4(0.0, 0.9, 1.0, 1.0);
-   mNeon.shininess = 128.0;
-
-   // Asignar texturas a structs Textures
-   texWhiteMetal.diffuse = imgWhiteMetal.getTexture();
-   texWhiteMetal.specular = imgWhiteMetal.getTexture();
-   texWhiteMetal.emissive = imgNoEmissive.getTexture();
-   texWhiteMetal.normal = 0;
-   texWhiteMetal.shininess = 64.0;
-
-   texGreyMetal.diffuse = imgGreyMetal.getTexture();
-   texGreyMetal.specular = imgGreyMetal.getTexture();
-   texGreyMetal.emissive = imgNoEmissive.getTexture();
-   texGreyMetal.normal = 0;
-   texGreyMetal.shininess = 100.0;
-
-   texBlackMetal.diffuse = imgBlackMetal.getTexture();
-   texBlackMetal.specular = imgBlackMetal.getTexture();
-   texBlackMetal.emissive = imgNoEmissive.getTexture();
-   texBlackMetal.normal = 0;
-   texBlackMetal.shininess = 32.0;
-
-   texBlackRubber.diffuse = imgBlackRubber.getTexture();
-   texBlackRubber.specular = imgBlackRubber.getTexture();
-   texBlackRubber.emissive = imgNoEmissive.getTexture();
-   texBlackRubber.normal = 0;
-   texBlackRubber.shininess = 10.0;
-
-   texBlueGlass.diffuse = imgBlueGlass.getTexture();
-   texBlueGlass.specular = imgBlueGlass.getTexture();
-   texBlueGlass.emissive = imgBlueGlass.getTexture();
-   texBlueGlass.normal = 0;
-   texBlueGlass.shininess = 128.0;
-
-   texRedGlass.diffuse = imgRedGlass.getTexture();
-   texRedGlass.specular = imgRedGlass.getTexture();
-   texRedGlass.emissive = imgRedGlass.getTexture();
-   texRedGlass.normal = 0;
-   texRedGlass.shininess = 128.0;
-
-   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
-   texAxiomFloor.specular = imgFloorSpec.getTexture();
-   texAxiomFloor.emissive = imgNoEmissive.getTexture();
-   texAxiomFloor.normal = imgFloorNormal.getTexture();
-   texAxiomFloor.shininess = 32.0;
-
-   texAxiomWall.diffuse  = imgAxiomWall_Albedo.getTexture();
-   texAxiomWall.specular = imgAxiomWall_Roughness.getTexture(); // Usamos roughness aquí
-   texAxiomWall.emissive = imgNoEmissive.getTexture();
-   texAxiomWall.normal   = imgAxiomWall_Normal.getTexture();
-   texAxiomWall.shininess = 50.0;
-
-   texCeiling.diffuse  = imgCeiling_Color.getTexture();
-   texCeiling.specular = imgCeiling_Roughness.getTexture();
-   texCeiling.emissive = imgNoEmissive.getTexture();
-   texCeiling.normal   = imgCeiling_Normal.getTexture();
-   texCeiling.shininess = 30.0;
-
-   texOrganicWall.diffuse  = imgOrganic_Albedo.getTexture();
-   texOrganicWall.specular = imgOrganic_Roughness.getTexture();
-   texOrganicWall.emissive = imgNoEmissive.getTexture();
-   texOrganicWall.normal   = imgOrganic_Normal.getTexture();
-   texOrganicWall.shininess = 64.0;
-
-
-
-   texRuby.diffuse = imgRuby.getTexture();
-   texRuby.specular = imgRuby.getTexture();
-   texRuby.emissive = imgNoEmissive.getTexture();
-   texRuby.normal = 0;
-   texRuby.shininess = 128.0;
-
-
-   texSignal.diffuse  = signal_BaseColor.getTexture();
-   texSignal.specular = signal_Roughness.getTexture();
-   texSignal.normal   = signal_Normal.getTexture();
-   texSignal.shininess = 10.0f;
 }
 
 void renderScene()
 {
-   if (animacionActiva)
-   {
+   // ==========================================
+   // 1. LÓGICA Y ANIMACIÓN (Cálculos previos)
+   // ==========================================
+   if (animacionActiva) {
       anguloAspiradora += 5.0f;
-      if (anguloAspiradora > 360.0f)
-         anguloAspiradora -= 360.0f;
+      if (anguloAspiradora > 360.0f) anguloAspiradora -= 360.0f;
    }
 
+   // Actualizamos posiciones y movimientos
    levantarSirena();
    movimientoMO();
    animacionHyperScanner();
    animacionDiagonalParedes();
 
-   float velocidadGiro = 2.0f;
-   if (giroIzq) anguloGiro += velocidadGiro;
-   if (giroDer) anguloGiro -= velocidadGiro;
+   // Input de giro
+   if (giroIzq) anguloGiro += 2.0f;
+   if (giroDer) anguloGiro -= 2.0f;
 
+   // ==========================================
+   // 2. CONFIGURACIÓN BÁSICA (Clear & Shaders)
+   // ==========================================
    glClearColor(0.0, 0.0, 0.0, 0.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
    shaders.useShaders();
 
-   // Matriz P
-   float nplane = 0.1;
-   float fplane = 400.0;
+   // ==========================================
+   // 3. CÁMARA (Matriz V) Y PERSPECTIVA (Matriz P)
+   // ==========================================
    float aspect = (float)w / (float)h;
-   glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, nplane, fplane);
-
-   // -----------------------------------------------------------------------
-   // CÁLCULO DE CÁMARA (LIBRE / F5)
-   // -----------------------------------------------------------------------
+   glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, 0.1f, 400.0f);
    glm::mat4 V;
 
-   if (modoF5)
-   {
-      // Modo F5: Cámara detrás del robot
-      float distancia = 12.5f;
-      float altura = 5.0f;
+   if (modoF5) {
+      // --- Cámara 3ª Persona (Detrás del robot) ---
+      float dist = 12.5f;
       float rad = glm::radians(anguloGiro);
 
-      // Posición de la cámara calculada relativa al ángulo del robot
       glm::vec3 camPosF5;
-      camPosF5.x = posX - (sin(rad) * distancia);
-      camPosF5.y = altura;
-      camPosF5.z = posZ - (cos(rad) * distancia);
+      camPosF5.x = posX - (sin(rad) * dist);
+      camPosF5.y = 5.0f;
+      camPosF5.z = posZ - (cos(rad) * dist);
 
-      // Miramos hacia el robot (un poco por encima del suelo)
-      glm::vec3 target = glm::vec3(posX, 4.0f, posZ);
-
-      V = glm::lookAt(camPosF5, target, glm::vec3(0.0f, 1.0f, 0.0f));
+      V = glm::lookAt(camPosF5, glm::vec3(posX, 4.0f, posZ), glm::vec3(0.0, 1.0, 0.0));
       shaders.setVec3("ueye", camPosF5);
    }
-   else
-   {
-      // Modo FPS: Cámara Libre
+   else {
+      // --- Cámara 1ª Persona (Libre) ---
       glm::vec3 front;
       front.x = cos(glm::radians(alphaX)) * cos(glm::radians(alphaY));
       front.y = sin(glm::radians(alphaY));
@@ -538,25 +569,36 @@ void renderScene()
       V = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
       shaders.setVec3("ueye", cameraPos);
    }
-   // -----------------------------------------------------------------------
 
-   glm::mat4 T = glm::translate(I, glm::vec3(posX, -2.0, posZ));
-   glm::mat4 R = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
-   glm::mat4 S = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
+   // ==========================================
+   // 4. PREPARAR MATRICES DEL ROBOT
+   // ==========================================
+   // Calculamos la matriz completa del robot AQUÍ para no repetirla luego
+   glm::mat4 T_MO = glm::translate(I, glm::vec3(posX, -2.0, posZ));
+   glm::mat4 R_MO = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
+   glm::mat4 S_MO = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
 
-   luzOjos(T * R * S);
+   glm::mat4 matrizMO = T_MO * R_MO * S_MO; // Matriz final del robot
 
-   // Fijamos las luces
+   // ==========================================
+   // 5. LUCES
+   // ==========================================
+   // Importante: Calcular la luz de los ojos antes de enviar las luces
+   luzOjos(matrizMO);
    setLights(P, V);
 
+   // ==========================================
+   // 6. DIBUJAR OBJETOS
+   // ==========================================
    drawEscenario(P, V);
-   drawMO(P, V, T * R * S);
-   drawObjectTex(signal, texSignal, P, V,
-    glm::scale(
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, -2.0f)),
-        glm::vec3(0.1f)
-    )
-);
+
+   // Dibujamos al robot usando la matriz que calculamos arriba
+   drawMO(P, V, matrizMO);
+
+   // Dibujamos la señal (Calculamos su matriz aquí para que se vea limpio)
+   glm::mat4 matrizSenal = glm::translate(I, glm::vec3(0.0f, -2.0f, -2.0f))
+                         * glm::scale(I, glm::vec3(0.1f));
+   drawObjectTex(signal, texSignal, P, V, matrizSenal);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
@@ -1165,33 +1207,30 @@ void configurarLuzPuntual(int index, glm::vec3 pos, glm::vec3 colorDiff, float c
     lightP[index].c2 = c2; // Atenuación
 }
 
-void dibujarSuelo(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
-   float escalaSuelo = 5.0f;
-   float tamanoLosa = 10.0f;
-   for (int i = 0; i < 10; i++) {
-      float zPos = -50.0f + (i * tamanoLosa);
-      for (int j = 0; j < 4; j++) {
-         float xPos = -15.0f + (j * tamanoLosa);
+void dibujarSuelo(glm::mat4 P, glm::mat4 V) {
+   // Baldosas de 10x10
+   for (int i = 0; i < 10; i++) { // Eje Z
+      float zPos = -50.0f + (i * 10.0f);
+      for (int j = 0; j < 4; j++) { // Eje X
+         float xPos = -15.0f + (j * 10.0f);
 
-         glm::mat4 MatrixSuelo = glm::translate(I, glm::vec3(xPos, nivelSuelo, zPos))
-                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-         drawObjectTex(plane, texAxiomFloor, P, V, MatrixSuelo);
+         glm::mat4 M = glm::translate(I, glm::vec3(xPos, SUELO_Y, zPos))
+                     * glm::scale(I, glm::vec3(5.0f, 1.0f, 5.0f));
+         drawObjectTex(plane, texAxiomFloor, P, V, M);
       }
    }
 }
 
-void dibujarTecho(glm::mat4 P, glm::mat4 V, float nivelTecho) {
-   float escalaSuelo = 5.0f;
-   float tamanoLosa = 10.0f;
+void dibujarTecho(glm::mat4 P, glm::mat4 V) {
    for (int i = 0; i < 10; i++) {
-      float zPos = -50.0f + (i * tamanoLosa);
+      float zPos = -50.0f + (i * 10.0f);
       for (int j = 0; j < 4; j++) {
-         float xPos = -15.0f + (j * tamanoLosa);
+         float xPos = -15.0f + (j * 10.0f);
 
-         glm::mat4 MatrixTecho = glm::translate(I, glm::vec3(xPos, nivelTecho, zPos))
-                               * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0))
-                               * glm::scale(I, glm::vec3(escalaSuelo, 1.0, escalaSuelo));
-         drawObjectTex(plane, texCeiling, P, V, MatrixTecho);
+         glm::mat4 M = glm::translate(I, glm::vec3(xPos, TECHO_Y, zPos))
+                     * glm::rotate(I, glm::radians(180.0f), glm::vec3(1.0, 0.0, 0.0)) // Boca abajo
+                     * glm::scale(I, glm::vec3(5.0f, 1.0f, 5.0f));
+         drawObjectTex(plane, texCeiling, P, V, M);
       }
    }
 }
@@ -1208,117 +1247,93 @@ void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
    drawObjectTex(plane, texRuby, P, V, Suciedad);
 }
 
-void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaGiganteY, int &luzIndex, float anchoPasillo) {
+void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
+    int luzIndex = 1; // Empezamos a configurar luces desde la 1
+    float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
+    float escalaY = ALTO_PARED / 2.0f; // La escala del cubo es la mitad de la altura total
 
-    // Altura total y centro
-    float alturaReal = escalaGiganteY * 2.0f;
-    float yCentro = nivelSuelo + escalaGiganteY;
+    // Dibujamos 5 bloques de pared a lo largo del pasillo
+    for (int i = 0; i < 5; i++) {
+        float zPos = -45.0f + (i * 20.0f);
 
-    // Configuración Z (Longitudinal)
-    float escalaGiganteZ = 10.0f;
-    float pasoZ = 20.0f;
-    float zInicio = -45.0f;
-    int numBloques = 5;
+        // --- LADO IZQUIERDO Y DERECHO ---
+        // Usamos un loop simple: k=-1 (Izquierda), k=1 (Derecha)
+        for(int k = -1; k <= 1; k += 2) {
+            float xPos = k * ANCHO_PASILLO_REAL;
 
-    // Detalles
-    float offsetNeon = 0.6f;
-    float offsetLuz  = 1.2f; // Que tan adentro de la pared está la luz
-    glm::vec3 colorNeon = glm::vec3(0.0f, 1.0f, 1.0f);
-    glm::vec3 escalaNeon = glm::vec3(0.05f, alturaReal * 0.48f, 0.05f);
+            // 1. Pared Grande
+            glm::mat4 M = glm::translate(I, glm::vec3(xPos, yCentro, zPos))
+                        * glm::scale(I, glm::vec3(0.5f, escalaY, 10.0f));
+            drawObjectTex(cube, texAxiomWall, P, V, M);
 
-    float offsetsY[3] = { -8.0f, 0.0f, 8.0f };
+            // 2. Neón Vertical
+            float xNeon = xPos - (k * 0.6f); // Un poco hacia adentro
+            glm::mat4 M_Neon = glm::translate(I, glm::vec3(xNeon, yCentro, zPos))
+                             * glm::scale(I, glm::vec3(0.05f, escalaY * 0.96f, 0.05f));
+            drawObjectTex(cube, texZocaloLed, P, V, M_Neon);
 
-    for (int i = 0; i < numBloques; i++) {
-        float zPos = zInicio + (i * pasoZ);
-        float zCentroDetalle = zPos;
+            // 3. Zócalo (Base)
+            float xZocalo = xPos - (k * 0.55f);
+            glm::mat4 M_Zoc = glm::translate(I, glm::vec3(xZocalo, SUELO_Y + 0.5f, zPos))
+                            * glm::scale(I, glm::vec3(0.1f, 0.5f, 10.0f));
+            drawObjectTex(cube, texZocaloLed, P, V, M_Zoc);
 
-        // 1. PAREDES GIGANTES (Usando anchoPasillo calculado)
-        // Nota: anchoPasillo es la distancia del centro (0,0) al CENTRO de la pared.
-        glm::mat4 M_Izq = glm::translate(I, glm::vec3(-anchoPasillo, yCentro, zPos))
-                        * glm::scale(I, glm::vec3(0.5f, escalaGiganteY, escalaGiganteZ));
-        drawObjectTex(cube, texAxiomWall, P, V, M_Izq);
-
-        glm::mat4 M_Der = glm::translate(I, glm::vec3(anchoPasillo, yCentro, zPos))
-                        * glm::scale(I, glm::vec3(0.5f, escalaGiganteY, escalaGiganteZ));
-        drawObjectTex(cube, texAxiomWall, P, V, M_Der);
-
-        // 2. NEONES
-        // Ajustamos la posición X para que sobresalgan un poco hacia el pasillo
-        // anchoPasillo es el centro de la pared. Si restamos offsetNeon vamos hacia el centro (0) en el lado derecho.
-        glm::vec3 posNeonIzq = glm::vec3(-anchoPasillo + offsetNeon, yCentro, zCentroDetalle);
-        glm::vec3 posNeonDer = glm::vec3( anchoPasillo - offsetNeon, yCentro, zCentroDetalle);
-
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posNeonIzq) * glm::scale(I, escalaNeon));
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posNeonDer) * glm::scale(I, escalaNeon));
-
-        // 3. LUCES
-        for(int k = 0; k < 3; k++) {
-            float alturaLuz = yCentro + offsetsY[k];
-            if (luzIndex < NLP)
-                configurarLuzPuntual(luzIndex++, glm::vec3(-anchoPasillo + offsetLuz, alturaLuz, zCentroDetalle), colorNeon, 0.4f);
-            if (luzIndex < NLP)
-                configurarLuzPuntual(luzIndex++, glm::vec3(anchoPasillo - offsetLuz, alturaLuz, zCentroDetalle), colorNeon, 0.4f);
+            // 4. Luces Puntuales (Lógica)
+            // Ponemos 3 luces por columna de pared
+            for(int h = -1; h <= 1; h++) {
+                if(luzIndex < NLP) {
+                    lightP[luzIndex].position = glm::vec3(xPos - (k * 1.2f), yCentro + (h * 8.0f), zPos);
+                    lightP[luzIndex].diffuse  = glm::vec3(0.0f, 1.0f, 1.0f); // Color Cyan
+                    lightP[luzIndex].c2       = 0.4f; // Atenuación
+                    luzIndex++;
+                }
+            }
         }
-
-        // 4. ZÓCALO LED (Base)
-        // Lo ponemos ligeramente más adentro que la pared para que tape la unión con el suelo
-        float posY_Zocalo = nivelSuelo + 0.5f;
-        // anchoPasillo - 0.55 pone el zocalo justo pegado a la cara interna de la pared
-        float xZocaloDist = anchoPasillo - 0.55f;
-
-        glm::vec3 posZocaloIzq = glm::vec3(-xZocaloDist, posY_Zocalo, zPos);
-        glm::vec3 posZocaloDer = glm::vec3( xZocaloDist, posY_Zocalo, zPos);
-
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloIzq) * glm::scale(I, glm::vec3(0.1f, 0.5f, escalaGiganteZ)));
-        drawObjectTex(cube, texZocaloLed, P, V, glm::translate(I, posZocaloDer) * glm::scale(I, glm::vec3(0.1f, 0.5f, escalaGiganteZ)));
     }
 }
 
-void dibujarParedesCierre(glm::mat4 P, glm::mat4 V, float nivelSuelo, float escalaGiganteY, float anchoPasillo) {
+void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
+   float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
+   float anchoTotal = (ANCHO_PASILLO_REAL + 0.5f) * 2.0f;
+   float escalaX = anchoTotal / 4.0f; // Mitad del ancho total, dividido entre 2 paredes
 
-   float yCentro = nivelSuelo + escalaGiganteY;
+   // Dibujamos dos mitades para la textura
+   for(int k = -1; k <= 1; k += 2) {
+      float xPos = k * (anchoTotal / 4.0f);
 
-   float anchoTotalRequerido = (anchoPasillo + 0.5f) * 2.0f;
-
-   float anchoRealPanel = anchoTotalRequerido / 2.0f;
-
-   float escalaPanelX = anchoRealPanel / 2.0f;
-
-   float xOffset = anchoRealPanel / 2.0f;
-
-   for(int i = 0; i < 2; i++) {
-      // i=0 -> Izquierda (-xOffset), i=1 -> Derecha (+xOffset)
-      float xPos = (i == 0) ? -xOffset : xOffset;
-
-      // PARED TRASERA
-      glm::vec3 posFondo = glm::vec3(xPos, yCentro, -55.0f);
-      glm::mat4 M_Fondo = glm::translate(I, posFondo)
-                        * glm::scale(I, glm::vec3(escalaPanelX, escalaGiganteY, 0.5f));
+      // Fondo (-Z)
+      glm::mat4 M_Fondo = glm::translate(I, glm::vec3(xPos, yCentro, -55.0f))
+                        * glm::scale(I, glm::vec3(escalaX, ALTO_PARED / 2.0f, 0.5f));
       drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
 
-      // PARED DELANTERA
-      glm::vec3 posFrente = glm::vec3(xPos, yCentro, 45.0f);
-      glm::mat4 M_Frente = glm::translate(I, posFrente)
-                         * glm::scale(I, glm::vec3(-escalaPanelX, escalaGiganteY, -0.5f));
+      // Frente (+Z)
+      glm::mat4 M_Frente = glm::translate(I, glm::vec3(xPos, yCentro, 45.0f))
+                         * glm::scale(I, glm::vec3(-escalaX, ALTO_PARED / 2.0f, -0.5f)); // Negativo para invertir textura
       drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
    }
 }
 
 void drawEscenario(glm::mat4 P, glm::mat4 V)
 {
-   float nivelSuelo = -2.0f;
-   float escalaGiganteY = 12.0f; // Altura paredes = 24.0
-   float nivelTecho = 22.0f;
+   // 1. Estructura básica
+   dibujarSuelo(P, V);
+   dibujarTecho(P, V);
 
-   float anchoPasillo = 20.5f;
+   // 2. Paredes
+   dibujarParedesLaterales(P, V);
+   dibujarParedesFondo(P, V);
 
-   int luzIndex = 1;
+   // 3. Detalles extra (Zócalo central y mancha)
+   // Zócalo central
+   glm::mat4 M_Linea = glm::translate(I, glm::vec3(0.0, SUELO_Y + 0.02f, -5.0))
+                     * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
+   drawObjectTex(plane, texZocaloLed, P, V, M_Linea);
 
-   dibujarSuelo(P, V, nivelSuelo);
-   dibujarTecho(P, V, nivelTecho);
-   dibujarDetalles(P, V, nivelSuelo);
+   // Mancha en el suelo
+   glm::mat4 M_Suciedad = glm::translate(I, glm::vec3(1.5, SUELO_Y + 0.05f, 2.0))
+                        * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
+   drawObjectTex(plane, texRuby, P, V, M_Suciedad);
 
-   // Pasamos anchoPasillo a las funciones para que todo cuadre
-   dibujarParedesLaterales(P, V, nivelSuelo, escalaGiganteY, luzIndex, anchoPasillo);
-   dibujarParedesCierre(P, V, nivelSuelo, escalaGiganteY, anchoPasillo);
+   // Actualizamos la variable global para las colisiones
+   anchoPasillo = ANCHO_PASILLO_REAL;
 }
