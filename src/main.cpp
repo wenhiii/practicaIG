@@ -880,7 +880,7 @@ void animacionHyperScanner()
    float amplitud = 19.0f;
    int baseIndex = 1;
 
-   // BARRA 1: CYAN (Movimiento Senoidal)
+   // BARRA 1: CYAN
    float xPos1 = sin(t * 1.5f) * amplitud;
 
    for(int i = 0; i < 5; i++) {
@@ -897,7 +897,7 @@ void animacionHyperScanner()
       lightP[idx].c2 = 0.2f;
    }
 
-   // BARRA 2: MAGENTA (Movimiento Cosinusoidal)
+   // BARRA 2: MAGENTA
    float xPos2 = cos(t * 2.2f) * amplitud;
 
    for(int i = 0; i < 5; i++) {
@@ -916,13 +916,10 @@ void animacionHyperScanner()
 }
 
 void animacionDiagonalParedes()
-{float t = glfwGetTime();
+{
+    float t = glfwGetTime();
 
-    // 1. AJUSTE DE ANCHO
-    // Antes 9.2f -> Ahora 19.0f (Para pegar con la pared de ancho 20)
     float paredX = 19.0f;
-
-    // 2. CONFIGURACIÓN DEL CAOS
     float velocidad = 25.0f;
     float frecuenciaOnda = 0.5f;
     float amplitudOnda = 1.5f;
@@ -931,9 +928,7 @@ void animacionDiagonalParedes()
     glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f);
     glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f);
 
-// -------------------------------------------------------------------------
-    // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente - Muro Alto)
-    // -------------------------------------------------------------------------
+    // --- GRUPO 1: PARED IZQUIERDA (Rayo Ascendente) ---
     int lucesSerpiente = 15;
     int baseIdx = 11;
 
@@ -942,108 +937,77 @@ void animacionDiagonalParedes()
         int idx = baseIdx + i;
         float lag = i * 0.5f;
 
-        // 3. AJUSTE DE LARGO (CICLO) - Se mantiene igual
         float ciclo = fmod((t * velocidad) - lag, 130.0f);
         float zActual = -65.0f + ciclo;
 
-        // Apagar si sale del rango visible
         if(zActual > 55.0f || zActual < -55.0f) {
             lightP[idx].diffuse = glm::vec3(0.0f);
             continue;
         }
 
-       float alturaInicio = 0.0f;  // Altura cuando entra al pasillo (Z = -50)
-       float alturaFinal  = 22.0f; // Altura cuando sale del pasillo (Z = +50)
+        // Interpolación de altura
+        float factorAltura = glm::clamp((zActual + 50.0f) / 100.0f, 0.0f, 1.0f);
+        float yBase = glm::mix(0.0f, 22.0f, factorAltura);
 
-       // Convertimos la posición Z (-50 a 50) a un factor de 0.0 a 1.0
-       float factorAltura = (zActual + 50.0f) / 100.0f;
-       factorAltura = glm::clamp(factorAltura, 0.0f, 1.0f);
-
-       // Interpolamos: Calcula la altura exacta basada en el progreso
-       float yBase = glm::mix(alturaInicio, alturaFinal, factorAltura);
-
-        // Aumentamos ligeramente la amplitud del ruido ya que hay más espacio vertical
-        float amplitudAjustada = amplitudOnda * 1.5f;
-        float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * amplitudAjustada;
-
+        float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * (amplitudOnda * 1.5f);
         float yFinal = yBase + ruidoElectrico;
 
-        // Posicionar en la pared IZQUIERDA
         lightP[idx].position = glm::vec3(-paredX, yFinal, zActual);
 
-        // --- COLOR ---
-        float calor = (zActual + 50.0f) / 100.0f;
-        calor = glm::clamp(calor, 0.0f, 1.0f);
-
-        glm::vec3 colorFinal;
-        if(calor < 0.5f) {
-            float mezcla = calor * 2.0f;
-            colorFinal = glm::mix(cFrio, cMedio, mezcla);
-        } else {
-            float mezcla = (calor - 0.5f) * 2.0f;
-            colorFinal = glm::mix(cMedio, cCaliente, mezcla);
-        }
+        // Lógica de Color e Intensidad
+        float calor = glm::clamp((zActual + 50.0f) / 100.0f, 0.0f, 1.0f);
+        glm::vec3 colorFinal = (calor < 0.5f)
+            ? glm::mix(cFrio, cMedio, calor * 2.0f)
+            : glm::mix(cMedio, cCaliente, (calor - 0.5f) * 2.0f);
 
         float estrobo = (sin(t * 60.0f + i) > 0.0f) ? 2.0f : 0.8f;
 
-        if (i < 3) { // Cabeza de la serpiente
+        if (i < 3) { // Cabeza
              lightP[idx].diffuse = glm::vec3(1.0f, 1.0f, 1.0f) * 5.0f;
              lightP[idx].c2 = 0.5f;
         } else { // Cuerpo
              lightP[idx].diffuse = colorFinal * estrobo;
-             // Si la pared es muy alta, quizás quieras reducir un poco la atenuación (c2)
-             // para que la luz llegue al suelo desde arriba.
              lightP[idx].c2 = 0.8f;
         }
 
         lightP[idx].specular = glm::vec3(1.0f);
         lightP[idx].ambient = glm::vec3(0.0f);
-        lightP[idx].c0 = 1.0f; lightP[idx].c1 = 0.1f;
+        lightP[idx].c0 = 1.0f;
+        lightP[idx].c1 = 0.1f;
     }
 
-    // -------------------------------------------------------------------------
-    // GRUPO 2: PARED DERECHA (Lluvia de Datos Matrix)
-    // -------------------------------------------------------------------------
+    // --- GRUPO 2: PARED DERECHA (Lluvia Matrix) ---
     int baseIdxDer = 26;
     int lucesLluvia = 15;
 
     for(int i = 0; i < lucesLluvia; i++)
     {
         int idx = baseIdxDer + i;
-
         float velocidadGota = velocidad * (1.0f + (i % 3) * 0.5f);
-
-        // Ciclo largo invertido
         float ciclo = fmod((t * velocidadGota) + (i * 10.0f), 130.0f);
-        float zActual = 65.0f - ciclo; // De +65 a -65
 
-        // Glitch vertical
+        float zActual = 65.0f - ciclo;
         float glitchY = (sin(t * 20.0f + i) > 0.9f) ? 1.0f : 0.0f;
+        float yActual = 22.0f - (ciclo * 0.2f) + glitchY;
 
-        // Altura constante con variación leve
-        float yActual = 22.0f - (ciclo * 0.2f) + glitchY; // Cae suavemente
-
-        // Posicionar en la pared DERECHA (+paredX)
         lightP[idx].position = glm::vec3(paredX, yActual, zActual);
 
-        bool corrupto = (sin(t * 40.0f + i) > 0.95f);
-
-        if (corrupto) {
+        if (sin(t * 40.0f + i) > 0.95f) { // Efecto corrupto
             lightP[idx].diffuse = glm::vec3(1.0f, 0.0f, 1.0f) * 5.0f;
-            lightP[idx].c2 = 0.1f; // Explosión de luz más grande para llenar el ancho
+            lightP[idx].c2 = 0.1f;
         } else {
             lightP[idx].diffuse = glm::vec3(0.0f, 1.5f, 0.2f);
-            lightP[idx].c2 = 0.6f; // Atenuación suave para que se vea desde lejos
+            lightP[idx].c2 = 0.6f;
         }
 
         lightP[idx].specular = glm::vec3(1.0f);
         lightP[idx].ambient = glm::vec3(0.0f);
-        lightP[idx].c0 = 1.0f; lightP[idx].c1 = 0.1f;
+        lightP[idx].c0 = 1.0f;
+        lightP[idx].c1 = 0.1f;
     }
 }
-
 void configurarLuzPuntual(int index, glm::vec3 pos, glm::vec3 colorDiff, float c2) {
-    if (index >= NLP) return; // Protección contra desbordamiento del array
+    if (index >= NLP) return;
 
     lightP[index].position = pos;
     lightP[index].diffuse  = colorDiff;
@@ -1051,11 +1015,10 @@ void configurarLuzPuntual(int index, glm::vec3 pos, glm::vec3 colorDiff, float c
     lightP[index].ambient  = glm::vec3(0.0f);
     lightP[index].c0 = 1.0f;
     lightP[index].c1 = 0.1f;
-    lightP[index].c2 = c2; // Atenuación
+    lightP[index].c2 = c2;
 }
 
 void dibujarSuelo(glm::mat4 P, glm::mat4 V) {
-   // Baldosas de 10x10
    for (int i = 0; i < 10; i++) { // Eje Z
       float zPos = -50.0f + (i * 10.0f);
       for (int j = 0; j < 4; j++) { // Eje X
@@ -1083,12 +1046,12 @@ void dibujarTecho(glm::mat4 P, glm::mat4 V) {
 }
 
 void dibujarDetalles(glm::mat4 P, glm::mat4 V, float nivelSuelo) {
-   // CAMBIO: Escala Z de 25 a 50 (Total 100 de largo)
+   // Zócalo LED central
    glm::mat4 MatrixLinea = glm::translate(I, glm::vec3(0.0, nivelSuelo + 0.02f, -5.0))
                          * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
    drawObjectTex(plane, texZocaloLed, P, V, MatrixLinea);
 
-   // Suciedad (puedes moverla si quieres, o dejarla ahí)
+   // Detalle de suciedad/suelo
    glm::mat4 Suciedad = glm::translate(I, glm::vec3(1.5, nivelSuelo + 0.05f, 2.0))
                       * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, Suciedad);
@@ -1098,31 +1061,27 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
    float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
    float escalaY = ALTO_PARED / 2.0f;
 
-   // Solo dibujamos geometría visual
    for (int i = 0; i < 5; i++) {
       float zPos = -45.0f + (i * 20.0f);
 
       for(int k = -1; k <= 1; k += 2) {
          float xPos = k * ANCHO_PASILLO;
 
-         // 1. Pared Grande
+         // Pared principal
          glm::mat4 M = glm::translate(I, glm::vec3(xPos, yCentro, zPos))
                      * glm::scale(I, glm::vec3(0.5f, escalaY, 10.0f));
          drawObjectTex(cube, texAxiomWall, P, V, M);
 
-         // 2. Neón Vertical
+         // Detalles: Neón y Zócalo
          float xNeon = xPos - (k * 0.6f);
          glm::mat4 M_Neon = glm::translate(I, glm::vec3(xNeon, yCentro, zPos))
                           * glm::scale(I, glm::vec3(0.05f, escalaY * 0.96f, 0.05f));
          drawObjectTex(cube, texZocaloLed, P, V, M_Neon);
 
-         // 3. Zócalo (Base)
          float xZocalo = xPos - (k * 0.55f);
          glm::mat4 M_Zoc = glm::translate(I, glm::vec3(xZocalo, SUELO_Y + 0.5f, zPos))
                          * glm::scale(I, glm::vec3(0.1f, 0.5f, 10.0f));
          drawObjectTex(cube, texZocaloLed, P, V, M_Zoc);
-
-
       }
    }
 }
@@ -1130,9 +1089,8 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
 void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
    float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
    float anchoTotal = (ANCHO_PASILLO + 0.5f) * 2.0f;
-   float escalaX = anchoTotal / 4.0f; // Mitad del ancho total, dividido entre 2 paredes
+   float escalaX = anchoTotal / 4.0f;
 
-   // Dibujamos dos mitades para la textura
    for(int k = -1; k <= 1; k += 2) {
       float xPos = k * (anchoTotal / 4.0f);
 
@@ -1143,22 +1101,19 @@ void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
 
       // Frente (+Z)
       glm::mat4 M_Frente = glm::translate(I, glm::vec3(xPos, yCentro, 45.0f))
-                         * glm::scale(I, glm::vec3(-escalaX, ALTO_PARED / 2.0f, -0.5f)); // Negativo para invertir textura
+                         * glm::scale(I, glm::vec3(-escalaX, ALTO_PARED / 2.0f, -0.5f));
       drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
    }
 }
 
 void drawEscenario(glm::mat4 P, glm::mat4 V)
 {
-   // 1. Estructura básica
    dibujarSuelo(P, V);
    dibujarTecho(P, V);
-
-   // 2. Paredes
    dibujarParedesLaterales(P, V);
    dibujarParedesFondo(P, V);
 
-   // 3. Detalles extra (Zócalo central y mancha)
+   // Detalles (Zócalo y manchas)
    glm::mat4 M_Linea = glm::translate(I, glm::vec3(0.0, SUELO_Y + 0.02f, -5.0))
                      * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
    drawObjectTex(plane, texZocaloLed, P, V, M_Linea);
@@ -1167,11 +1122,8 @@ void drawEscenario(glm::mat4 P, glm::mat4 V)
                         * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, M_Suciedad);
 
-   // ==========================================
-   // 4. OBJETOS AGREGADOS (Cajas y Señal)
-   // ==========================================
+   // Props: Contenedores y Señal
    float escala = 5.0f;
-
    drawContenedorSciFi(P, V, glm::vec3(-8.0f, -2.0f, 20.0f), 65.0f, escala);
    drawContenedorSciFi(P, V, glm::vec3(-8.0f, 1.4f, 20.0f), 65.0f, escala);
    drawContenedorSciFi(P, V, glm::vec3(-8.5f, -2.0f, 27.0f), 25.0f, escala);
@@ -1183,11 +1135,7 @@ void drawEscenario(glm::mat4 P, glm::mat4 V)
 
 void drawContenedorSciFi(glm::mat4 P, glm::mat4 V, glm::vec3 pos, float rotY, float escala) {
    glm::mat4 M = glm::translate(glm::mat4(1.0f), pos);
-
-   // Rotación
    M = glm::rotate(M, glm::radians(rotY), glm::vec3(0.0, 1.0, 0.0));
-
-   // Escala (ajusta 'escala' al llamar a la función si sale muy grande o pequeño)
    M = glm::scale(M, glm::vec3(escala));
 
    drawObjectTex(contenedor, texContenedor, P, V, M);
