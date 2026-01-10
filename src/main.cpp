@@ -502,8 +502,9 @@ void renderScene()
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    shaders.useShaders();
 
-
+   // Luz focal movible
    lightF[4].position = glm::vec3(focalPosX, focalPosY, focalPosZ);
+   lightF[4].direction = glm::vec3(0.0f, -1.0f, 0.0f);
 
    // ==========================================
    // 3. CÁMARA (Matriz V) Y PERSPECTIVA (Matriz P)
@@ -715,9 +716,12 @@ void funScroll(GLFWwindow *window, double xoffset, double yoffset)
 
 void funCursorPos(GLFWwindow *window, double xpos, double ypos)
 {
-   // Detectar qué botón está pulsado
    bool lmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
    bool rmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+
+   // Detectar si SHIFT está presionado
+   bool shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || 
+                glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 
    if (!lmb && !rmb) {
       firstClick = true;
@@ -731,12 +735,12 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
    }
 
    double xoffset = xpos - lastX;
-   double yoffset = lastY - ypos; // Invertido: mover ratón arriba = subir luz
+   double yoffset = lastY - ypos; 
    lastX = xpos;
    lastY = ypos;
 
    if (lmb) {
-      // Movimiento de Cámara (lo que ya tenías)
+      // Cámara (tu lógica original)
       alphaX += xoffset * sensitivity;
       alphaY += yoffset * sensitivity;
       float limY = 89.0f;
@@ -744,10 +748,19 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
       if (alphaY < -limY) alphaY = -limY;
    } 
    else if (rmb) {
-      // Movimiento de la Luz Roja
       float lightSensitivity = 0.05f;
+      
+      // El eje X siempre se mueve con el movimiento horizontal del ratón
       focalPosX += xoffset * lightSensitivity;
-      focalPosY += yoffset * lightSensitivity;
+
+      if (shift) {
+         // Si presionas SHIFT, el movimiento vertical del ratón mueve el eje Z
+         // Invertimos yoffset para que "hacia arriba" sea "hacia el fondo"
+         focalPosZ -= yoffset * lightSensitivity; 
+      } else {
+         // Sin SHIFT, el movimiento vertical mueve el eje Y (altura)
+         focalPosY += yoffset * lightSensitivity;
+      }
    }
 }
 
