@@ -13,7 +13,7 @@ void drawObjectMat(Model &model, Material material, glm::mat4 P, glm::mat4 V, gl
 void drawObjectTex(Model &model, Textures textures, glm::mat4 P, glm::mat4 V, glm::mat4 M);
 
 void drawEscenario(glm::mat4 P, glm::mat4 V);
-
+void drawContenedorSciFi(glm::mat4 P, glm::mat4 V, glm::vec3 pos, float rotY, float escala);
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCuerpo(glm::mat4 P, glm::mat4 V, glm::mat4 M);
 void drawCabeza(glm::mat4 P, glm::mat4 V, glm::mat4 M);
@@ -99,6 +99,7 @@ Model sphere;
 Model plane;
 Model cube;
 Model signal;
+Model contenedor;
 
 // Jerarquía Robot M-O
 Model aspiradora, cuerpo, cabeza, rueda;
@@ -124,6 +125,7 @@ Texture imgAxiomFloor, imgFloorNormal, imgFloorSpec;
 Texture imgAxiomWall_Albedo, imgAxiomWall_Normal, imgAxiomWall_Roughness;
 Texture imgCeiling_Color, imgCeiling_Normal, imgCeiling_Roughness, imgCeiling_AO;
 Texture imgOrganic_Albedo, imgOrganic_Normal, imgOrganic_Roughness;
+Texture imgCont_Diff, imgCont_Norm, imgCont_Metal, imgCont_Emis;
 
 // Props
 Texture signal_BaseColor, signal_Roughness, signal_Metallic, signal_Normal, signal_AO;
@@ -134,6 +136,7 @@ Texture signal_BaseColor, signal_Roughness, signal_Metallic, signal_Normal, sign
 Textures texAxiomFloor, texAxiomWall, texZocaloLed, texRuby, texCeiling, texOrganicWall;
 Textures texWhiteMetal, texGreyMetal, texBlackMetal, texBlackRubber, texBlueGlass, texRedGlass;
 Textures texSignal;
+Textures texContenedor;
 
 // =========================================================================
 // 8. ESTADO DEL JUEGO Y ANIMACIONES (ROBOT)
@@ -229,6 +232,7 @@ void configScene()
    plane.initModel(  "resources/models/plane.obj");
    cube.initModel(   "resources/models/cube.obj");
    signal.initModel( "resources/models/Sign.obj");
+   contenedor.initModel("resources/models/Container Free.obj");
 
    // Robot (M-O)
    aspiradora.initModel(       "resources/models/aspiradora.obj");
@@ -281,6 +285,11 @@ void configScene()
    signal_BaseColor.initTexture(       "resources/textures/sign_basecolor.png");
    signal_Roughness.initTexture(       "resources/textures/sign_roughness.png");
    signal_Normal.initTexture(          "resources/textures/sign_normal.png");
+
+   imgCont_Diff.initTexture("resources/textures/Container Free_BaseColor.png");
+   imgCont_Norm.initTexture("resources/textures/Container Free_Normal_OpenGL.png");
+   imgCont_Metal.initTexture("resources/textures/Container Free_Metallic.png");
+   imgCont_Emis.initTexture("resources/textures/TContainer Free_Emissive.png");
 
    // ==========================================
    // 4. CONFIGURACIÓN DE MATERIALES
@@ -356,6 +365,12 @@ void configScene()
    texOrganicWall.emissive  = imgNoEmissive.getTexture();
    texOrganicWall.normal    = imgOrganic_Normal.getTexture();
    texOrganicWall.shininess = 64.0f;
+
+   texContenedor.diffuse   = imgCont_Diff.getTexture();
+   texContenedor.specular  = imgCont_Metal.getTexture();
+   texContenedor.normal    = imgCont_Norm.getTexture();
+   texContenedor.emissive  = imgCont_Emis.getTexture();
+   texContenedor.shininess = 32.0f;
 
    // Otros
    texRuby.diffuse   = imgRuby.getTexture();
@@ -540,10 +555,13 @@ void renderScene()
    // ==========================================
    drawEscenario(P, V);
 
-   // Dibujamos al robot usando la matriz que calculamos arriba
    drawMO(P, V, matrizMO);
 
-   // Dibujamos la señal (Calculamos su matriz aquí para que se vea limpio)
+   float escala = 5.0f;
+
+   drawContenedorSciFi(P, V, glm::vec3(-8.0f, -2.0f, 20.0f), 65.0f, escala);
+   drawContenedorSciFi(P, V, glm::vec3(-8.0f, 1.4f, 20.0f), 65.0f, escala);
+   drawContenedorSciFi(P, V, glm::vec3(-8.5f, -2.0f, 27.0f), 25.0f, escala);
    glm::mat4 matrizSenal = glm::translate(I, glm::vec3(0.0f, -2.0f, -2.0f))
                          * glm::scale(I, glm::vec3(0.1f));
    drawObjectTex(signal, texSignal, P, V, matrizSenal);
@@ -1290,4 +1308,16 @@ void drawEscenario(glm::mat4 P, glm::mat4 V)
                         * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, M_Suciedad);
 
+}
+
+void drawContenedorSciFi(glm::mat4 P, glm::mat4 V, glm::vec3 pos, float rotY, float escala) {
+   glm::mat4 M = glm::translate(glm::mat4(1.0f), pos);
+
+   // Rotación
+   M = glm::rotate(M, glm::radians(rotY), glm::vec3(0.0, 1.0, 0.0));
+
+   // Escala (ajusta 'escala' al llamar a la función si sale muy grande o pequeño)
+   M = glm::scale(M, glm::vec3(escala));
+
+   drawObjectTex(contenedor, texContenedor, P, V, M);
 }
