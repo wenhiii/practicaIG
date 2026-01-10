@@ -52,7 +52,7 @@ const float ANCHO_PASILLO  = 20.5f;
 
 // Configuración de Luces (Límites de Arrays)
 #define NLD 1   // Luces Direccionales (Sol)
-#define NLP 41  // Luces Posicionales (Lámparas, efectos)
+#define NLP 45  // Luces Posicionales (Lámparas, efectos)
 #define NLF 5   // Luces Focales (Linternas, Ojos)
 
 // =========================================================================
