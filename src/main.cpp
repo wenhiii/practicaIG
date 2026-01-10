@@ -36,24 +36,23 @@ void funScroll(GLFWwindow *window, double xoffset, double yoffset);
 void funCursorPos(GLFWwindow *window, double xpos, double ypos);
 
 // =========================================================================
-// 1. CONFIGURACIÓN Y CONSTANTES
+// 1. CONFIGURACIÓN Y CONSTANTES DEL MUNDO
 // =========================================================================
 
-// Dimensiones del Viewport
+// Dimensiones de Ventana
 int w = 500;
 int h = 500;
 
-// Configuración del Escenario (Constantes Físicas)
-const float SUELO_Y            = -2.0f;
-const float TECHO_Y            = 22.0f;
-const float ALTO_PARED         = 24.0f;
-const float ANCHO_PASILLO_REAL = 20.5f;
-float anchoPasillo             = 20.0f;
+// Constantes Físicas del Escenario
+const float SUELO_Y        = -2.0f;
+const float TECHO_Y        = 22.0f;
+const float ALTO_PARED     = 24.0f;
+const float ANCHO_PASILLO  = 20.5f;
 
-// Definición de Luces (Cantidad)
-#define NLD 1   // Luces Direccionales
-#define NLP 50  // Luces Posicionales (Puntuales)
-#define NLF 6   // Luces Focales (Spotlights)
+// Configuración de Luces (Límites de Arrays)
+#define NLD 1   // Luces Direccionales (Sol)
+#define NLP 50  // Luces Posicionales (Lámparas, efectos)
+#define NLF 6   // Luces Focales (Linternas, Ojos)
 
 // =========================================================================
 // 2. SISTEMAS Y SHADERS
@@ -67,14 +66,14 @@ Shaders shaders;
 float fovy          = 60.0f;
 float sensitivity   = 0.5f;
 bool  firstClick    = true;
-bool  modoF5        = false; // true = 3ra persona, false = 1ra persona
+bool  modoF5        = false; // false = 1ra persona, true = 3ra persona
 
 // Estado del Ratón
 double lastX = 0.0;
 double lastY = 0.0;
 
 // Vectores y Orientación (Cámara Libre)
-float alphaX = -90.0f; // Mirando hacia -Z por defecto
+float alphaX = -90.0f;
 float alphaY = 0.0f;
 glm::vec3 cameraPos   = glm::vec3(0.0f, 2.0f, 15.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -83,105 +82,58 @@ glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 // =========================================================================
 // 4. LUCES Y MATERIALES BASE
 // =========================================================================
-// Estructuras de Luces
-Light lightG;           // Global / Ambiente
-Light lightD[NLD];      // Sol / Direccional
-Light lightP[NLP];      // Puntos de luz (LEDs, Neones)
-Light lightF[NLF];      // Linternas / Ojos
+Light lightG;           // Global
+Light lightD[NLD];      // Direccionales
+Light lightP[NLP];      // Posicionales
+Light lightF[NLF];      // Focales
 
-// Materiales sin textura (Propiedades puras)
-Material mluz;
-Material mOjo;
-Material mNeon;
+Material mluz;  // Material emisivo puro (para representar las luces)
+Material mOjo;  // Material brillante para los ojos
+Material mNeon; // Material para neones
 
 // =========================================================================
 // 5. RECURSOS: MODELOS 3D (.OBJ)
 // =========================================================================
-// -- Primitivas y Escenario --
+// Primitivas y Props
 Model sphere;
 Model plane;
 Model cube;
 Model signal;
 
-// -- Robot M-O (Jerarquía) --
-Model aspiradora;
-Model brazoDerecho;
-Model brazoIzquierdo;
-Model cara;
-Model casco;
-Model cristalSirena;
-Model cubreRueda;
-Model cuello;
-Model cuerpo;
-Model ejeBrazoDerecho;
-Model ejeBrazoIzquierdo;
-Model mochila;
-Model rueda;
-Model tapaAspiradora;
-Model tapaCasco;
-Model tapaSirena;
+// Jerarquía Robot M-O
+Model aspiradora, cuerpo, cabeza, rueda;
+Model brazoDerecho, brazoIzquierdo;
+Model cara, casco, cuello;
+Model cristalSirena, tapaSirena;
+Model cubreRueda, mochila;
+Model ejeBrazoDerecho, ejeBrazoIzquierdo;
+Model tapaAspiradora, tapaCasco;
 
 // =========================================================================
-// 6. RECURSOS: IMÁGENES (TEXTURAS RAW)
+// 6. RECURSOS: TEXTURAS (RAW IMAGES)
 // =========================================================================
-// -- Materiales Generales --
+// Materiales Genéricos
 Texture imgNoEmissive;
-Texture imgWhiteMetal;
-Texture imgGreyMetal;
-Texture imgBlackMetal;
+Texture imgWhiteMetal, imgGreyMetal, imgBlackMetal;
 Texture imgBlackRubber;
-Texture imgBlueGlass;
-Texture imgRedGlass;
+Texture imgBlueGlass, imgRedGlass;
 Texture imgRuby;
 
-// -- Escenario (PBR / Sci-Fi) --
-// Suelo
-Texture imgAxiomFloor;
-Texture imgFloorNormal;
-Texture imgFloorSpec;
+// Escenario (PBR)
+Texture imgAxiomFloor, imgFloorNormal, imgFloorSpec;
+Texture imgAxiomWall_Albedo, imgAxiomWall_Normal, imgAxiomWall_Roughness;
+Texture imgCeiling_Color, imgCeiling_Normal, imgCeiling_Roughness, imgCeiling_AO;
+Texture imgOrganic_Albedo, imgOrganic_Normal, imgOrganic_Roughness;
 
-// Paredes y Techo
-Texture imgAxiomWall_Albedo;
-Texture imgAxiomWall_Normal;
-Texture imgAxiomWall_Roughness;
-
-Texture imgCeiling_Color;
-Texture imgCeiling_Normal;
-Texture imgCeiling_Roughness;
-Texture imgCeiling_AO;
-
-Texture imgOrganic_Albedo;
-Texture imgOrganic_Normal;
-Texture imgOrganic_Roughness;
-
-// Señalética
-Texture signal_BaseColor;
-Texture signal_Roughness;
-Texture signal_Metallic;
-Texture signal_Normal;
-Texture signal_AO;
+// Props
+Texture signal_BaseColor, signal_Roughness, signal_Metallic, signal_Normal, signal_AO;
 
 // =========================================================================
-// 7. MATERIALES COMPUESTOS (SETS DE TEXTURAS)
+// 7. TEXTURAS COMPUESTAS (SETS PARA SHADER)
 // =========================================================================
-// Estos agrupan Diffuse, Specular, Normal, etc. para el Shader
-
-// -- Sets Escenario --
-Textures texAxiomFloor;
-Textures texAxiomWall;
-Textures texZocaloLed;
-Textures texRuby;
-Textures texCeiling;
-Textures texOrganicWall;
+Textures texAxiomFloor, texAxiomWall, texZocaloLed, texRuby, texCeiling, texOrganicWall;
+Textures texWhiteMetal, texGreyMetal, texBlackMetal, texBlackRubber, texBlueGlass, texRedGlass;
 Textures texSignal;
-
-// -- Sets Robot --
-Textures texWhiteMetal;
-Textures texGreyMetal;
-Textures texBlackMetal;
-Textures texBlackRubber;
-Textures texBlueGlass;
-Textures texRedGlass;
 
 // =========================================================================
 // 8. ESTADO DEL JUEGO Y ANIMACIONES (ROBOT)
@@ -189,26 +141,22 @@ Textures texRedGlass;
 // Posición y Orientación
 float posX          = 0.0f;
 float posZ          = 0.0f;
-float anguloGiro    = 0.0f;
-float inclinacionX  = 0.0f;
-float inclinacionZ  = 0.0f;
-glm::mat4 rotRueda  = I; // Matriz acumulada de rotación
+float anguloGiro    = 0.0f; // Orientación Y (yaw)
+float inclinacionX  = 0.0f; // Pitch dinámico al moverse
+float inclinacionZ  = 0.0f; // Roll dinámico al girar
 
-// Variables de Animación
-float anguloAspiradora = 0.0f;
-float anguloBrazos     = 0.0f;
-float anguloSirena     = 0.0f;
-float alturaSirena     = -7.42f;
+// Animaciones Internas
+float anguloRueda      = 0.0f;   // [CORREGIDO] Float en vez de Matriz acumulada
+float anguloAspiradora = 0.0f;   // Rotación del rodillo
+float anguloBrazos     = 0.0f;   // Elevación de brazos
+float anguloSirena     = 0.0f;   // Rotación luces sirena
+float alturaSirena     = -7.42f; // Eje Y local sirena
 
 // Flags de Control (Inputs)
-bool animacionActiva   = false;
-bool sirenaLevantada   = false;
-bool giroIzq = false;
-bool giroDer = false;
-bool movW    = false;
-bool movS    = false;
-bool movA    = false;
-bool movD    = false;
+bool animacionActiva = false; // "G" key
+bool sirenaLevantada = false; // "Y" key
+bool giroIzq = false, giroDer = false;
+bool movW = false, movS = false, movA = false, movD = false;
 
 int main()
 {
@@ -908,7 +856,10 @@ void drawRueda(glm::mat4 P, glm::mat4 V, glm::mat4 M)
    glm::vec3 centroRueda = glm::vec3(0.0f, 9.80f, -3.58f);
    glm::mat4 Tida = glm::translate(I, -centroRueda);
    glm::mat4 Tvuelta = glm::translate(I, centroRueda);
-   drawObjectTex(rueda, texBlackRubber, P, V, M * Tvuelta * rotRueda * Tida);
+
+   glm::mat4 M_RotacionRueda = glm::rotate(I, glm::radians(anguloRueda), glm::vec3(1.0, 0.0, 0.0));
+
+   drawObjectTex(rueda, texBlackRubber, P, V, M * Tvuelta * M_RotacionRueda * Tida);
 }
 
 void levantarSirena()
@@ -937,7 +888,6 @@ void movimientoMO()
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
-
    float limiteX = 17.3f;
    float limiteZ = 47.3f;
 
@@ -945,41 +895,40 @@ void movimientoMO()
    if (movW) {
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
-      rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
+
+      anguloRueda += velocidadRot;
+
       if (animacionActiva) maxInclinacionX = 40.0f;
-      if (!animacionActiva) maxInclinacionX = 15.0f;
+      else maxInclinacionX = 15.0f;
    }
    if (movS) {
       posX -= sin(rad) * velocidadMov;
       posZ -= cos(rad) * velocidadMov;
-      rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(1.0, 0.0, 0.0)) * rotRueda;
+
+      anguloRueda -= velocidadRot;
+
       maxInclinacionX = -15.0f;
    }
    if (movA) {
       posX += cos(rad) * velocidadMov;
       posZ -= sin(rad) * velocidadMov;
-      rotRueda = glm::rotate(I, glm::radians(velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
+
       maxInclinacionZ = -15.0f;
    }
    if (movD) {
       posX -= cos(rad) * velocidadMov;
       posZ += sin(rad) * velocidadMov;
-      rotRueda = glm::rotate(I, glm::radians(-velocidadRot), glm::vec3(0.0, 0.0, 1.0)) * rotRueda;
+
       maxInclinacionZ = 15.0f;
    }
 
-   // 2. RESTRICCIÓN DE LÍMITES (LO NUEVO)
-   // Si el cálculo anterior te sacó del mapa, esto te "empuja" suavemente al borde.
-
-   // Eje X (Paredes laterales)
+   // 2. RESTRICCIÓN DE LÍMITES (COLISIONES)
    if (posX > limiteX) posX = limiteX;
    if (posX < -limiteX) posX = -limiteX;
-
-   // Eje Z (Fondo y Frente)
    if (posZ > limiteZ) posZ = limiteZ;
    if (posZ < -limiteZ) posZ = -limiteZ;
 
-   // 3. INCLINACIÓN
+   // 3. INCLINACIÓN (SISTEMA DE MUELLES)
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
@@ -1259,7 +1208,7 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
         // --- LADO IZQUIERDO Y DERECHO ---
         // Usamos un loop simple: k=-1 (Izquierda), k=1 (Derecha)
         for(int k = -1; k <= 1; k += 2) {
-            float xPos = k * ANCHO_PASILLO_REAL;
+            float xPos = k * ANCHO_PASILLO;
 
             // 1. Pared Grande
             glm::mat4 M = glm::translate(I, glm::vec3(xPos, yCentro, zPos))
@@ -1294,7 +1243,7 @@ void dibujarParedesLaterales(glm::mat4 P, glm::mat4 V) {
 
 void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
    float yCentro = SUELO_Y + (ALTO_PARED / 2.0f);
-   float anchoTotal = (ANCHO_PASILLO_REAL + 0.5f) * 2.0f;
+   float anchoTotal = (ANCHO_PASILLO + 0.5f) * 2.0f;
    float escalaX = anchoTotal / 4.0f; // Mitad del ancho total, dividido entre 2 paredes
 
    // Dibujamos dos mitades para la textura
@@ -1334,6 +1283,4 @@ void drawEscenario(glm::mat4 P, glm::mat4 V)
                         * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, M_Suciedad);
 
-   // Actualizamos la variable global para las colisiones
-   anchoPasillo = ANCHO_PASILLO_REAL;
 }
