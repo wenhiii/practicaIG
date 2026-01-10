@@ -52,7 +52,7 @@ const float ANCHO_PASILLO  = 20.5f;
 // Configuración de Luces (Límites de Arrays)
 #define NLD 1   // Luces Direccionales (Sol)
 #define NLP 50  // Luces Posicionales (Lámparas, efectos)
-#define NLF 4   // Luces Focales (Linternas, Ojos)
+#define NLF 5   // Luces Focales (Linternas, Ojos)
 
 // =========================================================================
 // 2. SISTEMAS Y SHADERS
@@ -160,6 +160,12 @@ bool animacionActiva = false; // "G" key
 bool sirenaLevantada = false; // "Y" key
 bool giroIzq = false, giroDer = false;
 bool movW = false, movS = false, movA = false, movD = false;
+
+//Luz focal movible
+float focalPosX = 0.0f;
+float focalPosY = 5.0f;
+float focalPosZ = 10.0f;
+bool botonDerecho = false;
 
 int main()
 {
@@ -425,7 +431,7 @@ void configScene()
 
    // --- Posicionales ---
    // P[0]: Principal
-   lightP[0].position = glm::vec3(0.0, 4.0, 0.0);
+   lightP[0].position = glm::vec3(0.0, 22.0, 0.0);
    lightP[0].ambient  = glm::vec3(0.2f);
    lightP[0].diffuse  = glm::vec3(0.9, 0.95, 1.0);
    lightP[0].specular = glm::vec3(1.0f);
@@ -459,6 +465,14 @@ void configScene()
        lightF[i].outerCutOff = 30.0f;
        lightF[i].c0 = 1.0f; lightF[i].c1 = 0.09f; lightF[i].c2 = 0.032f;
    }
+
+   lightF[4].ambient     = glm::vec3(0.1f, 0.0f, 0.0f);
+   lightF[4].diffuse     = glm::vec3(1.0f, 0.0f, 0.0f); // Roja
+   lightF[4].specular    = glm::vec3(1.0f, 0.0f, 0.0f);
+   lightF[4].innerCutOff = 10.0f;
+   lightF[4].outerCutOff = 20.0f;
+   lightF[4].c0 = 1.0f; lightF[4].c1 = 0.09f; lightF[4].c2 = 0.032f;
+   lightF[4].direction = glm::vec3(0.0f, -1.0f, -1.0f);
 }
 
 void renderScene()
@@ -487,6 +501,9 @@ void renderScene()
    glClearColor(0.0, 0.0, 0.0, 0.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    shaders.useShaders();
+
+
+   lightF[4].position = glm::vec3(focalPosX, focalPosY, focalPosZ);
 
    // ==========================================
    // 3. CÁMARA (Matriz V) Y PERSPECTIVA (Matriz P)
@@ -540,6 +557,13 @@ void renderScene()
    // ==========================================
    // 6. DIBUJAR OBJETOS
    // ==========================================
+
+   glm::mat4 matLuzRoja = glm::translate(I, lightF[4].position) * glm::scale(I, glm::vec3(0.2f));
+   Material mRoja = mluz; 
+   mRoja.emissive = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+   drawObjectMat(sphere, mRoja, P, V, matLuzRoja);
+
    drawEscenario(P, V);
 
    drawMO(P, V, matrizMO);
@@ -691,27 +715,40 @@ void funScroll(GLFWwindow *window, double xoffset, double yoffset)
 
 void funCursorPos(GLFWwindow *window, double xpos, double ypos)
 {
-   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+   // Detectar qué botón está pulsado
+   bool lmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+   bool rmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+
+   if (!lmb && !rmb) {
       firstClick = true;
       return;
    }
+
    if (firstClick) {
       lastX = xpos;
       lastY = ypos;
       firstClick = false;
    }
+
    double xoffset = xpos - lastX;
-   double yoffset = lastY - ypos;
+   double yoffset = lastY - ypos; // Invertido: mover ratón arriba = subir luz
    lastX = xpos;
    lastY = ypos;
 
-   alphaX += xoffset * sensitivity;
-   alphaY += yoffset * sensitivity;
-
-   // Limitamos la vista arriba/abajo para no dar la vuelta (Gimbal Lock)
-   float limY = 89.0f;
-   if (alphaY > limY) alphaY = limY;
-   if (alphaY < -limY) alphaY = -limY;
+   if (lmb) {
+      // Movimiento de Cámara (lo que ya tenías)
+      alphaX += xoffset * sensitivity;
+      alphaY += yoffset * sensitivity;
+      float limY = 89.0f;
+      if (alphaY > limY) alphaY = limY;
+      if (alphaY < -limY) alphaY = -limY;
+   } 
+   else if (rmb) {
+      // Movimiento de la Luz Roja
+      float lightSensitivity = 0.05f;
+      focalPosX += xoffset * lightSensitivity;
+      focalPosY += yoffset * lightSensitivity;
+   }
 }
 
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
