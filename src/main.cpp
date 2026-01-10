@@ -888,47 +888,49 @@ void movimientoMO()
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
-   float limiteX = 17.3f;
-   float limiteZ = 47.3f;
+   float minX = -17.3f;
+   float maxX = 17.3f;
+
+   float minZ = -52.3f;
+   float maxZ = 42.3f;
 
    // 1. CÁLCULO DE MOVIMIENTO
    if (movW) {
       posX += sin(rad) * velocidadMov;
       posZ += cos(rad) * velocidadMov;
-
       anguloRueda += velocidadRot;
-
       if (animacionActiva) maxInclinacionX = 40.0f;
       else maxInclinacionX = 15.0f;
    }
    if (movS) {
       posX -= sin(rad) * velocidadMov;
       posZ -= cos(rad) * velocidadMov;
-
       anguloRueda -= velocidadRot;
-
       maxInclinacionX = -15.0f;
    }
    if (movA) {
       posX += cos(rad) * velocidadMov;
       posZ -= sin(rad) * velocidadMov;
-
       maxInclinacionZ = -15.0f;
    }
    if (movD) {
       posX -= cos(rad) * velocidadMov;
       posZ += sin(rad) * velocidadMov;
-
       maxInclinacionZ = 15.0f;
    }
 
-   // 2. RESTRICCIÓN DE LÍMITES (COLISIONES)
-   if (posX > limiteX) posX = limiteX;
-   if (posX < -limiteX) posX = -limiteX;
-   if (posZ > limiteZ) posZ = limiteZ;
-   if (posZ < -limiteZ) posZ = -limiteZ;
+   // 2. RESTRICCIÓN DE LÍMITES (INTERVALOS DE DESPLAZAMIENTO)
+   // Ya no usamos -limiteX, ahora usamos tus variables min y max
 
-   // 3. INCLINACIÓN (SISTEMA DE MUELLES)
+   // EJE X
+   if (posX > maxX) posX = maxX; // Tope derecho (ej: 25)
+   if (posX < minX) posX = minX; // Tope izquierdo (ej: 5)
+
+   // EJE Z
+   if (posZ > maxZ) posZ = maxZ;
+   if (posZ < minZ) posZ = minZ;
+
+   // 3. INCLINACIÓN (Igual que antes)
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
@@ -980,7 +982,7 @@ void animacionHyperScanner()
         int idx = baseIndex + i; // Luces 1, 2, 3, 4, 5
 
         // Estiramos más la barra verticalmente (de -2 a +10)
-        float yPos = -2.0f + (i * 3.0f);
+        float yPos = 0.0f + (i * 5.0f);
 
         lightP[idx].position = glm::vec3(xPos1, yPos, zLuz);
 
@@ -1006,7 +1008,7 @@ void animacionHyperScanner()
     for(int i = 0; i < 5; i++) {
         int idx = baseIndex + 5 + i; // Luces 6, 7, 8, 9, 10
 
-        float yPos = -1.0f + (i * 3.0f);
+       float yPos = 2.5f + (i * 5.0f);
 
         lightP[idx].position = glm::vec3(xPos2, yPos, zLuz);
 
@@ -1038,44 +1040,47 @@ void animacionDiagonalParedes()
     glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f);
     glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f);
 
+// -------------------------------------------------------------------------
+    // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente - Muro Alto)
     // -------------------------------------------------------------------------
-    // GRUPO 1: PARED IZQUIERDA (El Rayo Ascendente)
-    // -------------------------------------------------------------------------
-    // Usamos las mismas luces (10 a 24)
     int lucesSerpiente = 15;
     int baseIdx = 10;
 
     for(int i = 0; i < lucesSerpiente; i++)
     {
         int idx = baseIdx + i;
-        float lag = i * 0.5f; // Un poco más de separación entre bolas
+        float lag = i * 0.5f;
 
-        // 3. AJUSTE DE LARGO (CICLO)
-        // El pasillo mide 100m (-50 a 50). El ciclo debe ser mayor (130m) para dar margen.
+        // 3. AJUSTE DE LARGO (CICLO) - Se mantiene igual
         float ciclo = fmod((t * velocidad) - lag, 130.0f);
-
-        // Empezamos en -65 para asegurarnos de que cruza todo el pasillo
         float zActual = -65.0f + ciclo;
 
-        // Apagar si sale del rango visible (-55 a +55)
+        // Apagar si sale del rango visible
         if(zActual > 55.0f || zActual < -55.0f) {
             lightP[idx].diffuse = glm::vec3(0.0f);
             continue;
         }
 
-        // 4. AJUSTE DE PENDIENTE (Math)
-        // "zActual / 10.0f" -> Pendiente más suave para que no se vaya al techo muy rápido
-        // Sumamos 4.0f para que empiece a media altura
-        float yBase = 4.0f + (zActual * 0.12f);
+       float alturaInicio = 0.0f;  // Altura cuando entra al pasillo (Z = -50)
+       float alturaFinal  = 22.0f; // Altura cuando sale del pasillo (Z = +50)
 
-        float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * amplitudOnda;
+       // Convertimos la posición Z (-50 a 50) a un factor de 0.0 a 1.0
+       float factorAltura = (zActual + 50.0f) / 100.0f;
+       factorAltura = glm::clamp(factorAltura, 0.0f, 1.0f);
+
+       // Interpolamos: Calcula la altura exacta basada en el progreso
+       float yBase = glm::mix(alturaInicio, alturaFinal, factorAltura);
+
+        // Aumentamos ligeramente la amplitud del ruido ya que hay más espacio vertical
+        float amplitudAjustada = amplitudOnda * 1.5f;
+        float ruidoElectrico = sin((zActual * frecuenciaOnda) + (t * 10.0f)) * amplitudAjustada;
+
         float yFinal = yBase + ruidoElectrico;
 
-        // Posicionar en la pared IZQUIERDA (-paredX)
+        // Posicionar en la pared IZQUIERDA
         lightP[idx].position = glm::vec3(-paredX, yFinal, zActual);
 
-        // --- COLOR (Ajustado al nuevo rango de Z) ---
-        // Normalizamos Z de -50..50 a 0..1
+        // --- COLOR ---
         float calor = (zActual + 50.0f) / 100.0f;
         calor = glm::clamp(calor, 0.0f, 1.0f);
 
@@ -1090,12 +1095,14 @@ void animacionDiagonalParedes()
 
         float estrobo = (sin(t * 60.0f + i) > 0.0f) ? 2.0f : 0.8f;
 
-        if (i < 3) {
+        if (i < 3) { // Cabeza de la serpiente
              lightP[idx].diffuse = glm::vec3(1.0f, 1.0f, 1.0f) * 5.0f;
              lightP[idx].c2 = 0.5f;
-        } else {
+        } else { // Cuerpo
              lightP[idx].diffuse = colorFinal * estrobo;
-             lightP[idx].c2 = 1.0f; // Atenuación ajustada para pasillo ancho
+             // Si la pared es muy alta, quizás quieras reducir un poco la atenuación (c2)
+             // para que la luz llegue al suelo desde arriba.
+             lightP[idx].c2 = 0.8f;
         }
 
         lightP[idx].specular = glm::vec3(1.0f);
@@ -1123,7 +1130,7 @@ void animacionDiagonalParedes()
         float glitchY = (sin(t * 20.0f + i) > 0.9f) ? 1.0f : 0.0f;
 
         // Altura constante con variación leve
-        float yActual = 10.0f - (ciclo * 0.1f) + glitchY; // Cae suavemente
+        float yActual = 22.0f - (ciclo * 0.2f) + glitchY; // Cae suavemente
 
         // Posicionar en la pared DERECHA (+paredX)
         lightP[idx].position = glm::vec3(paredX, yActual, zActual);
