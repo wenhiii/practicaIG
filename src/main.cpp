@@ -36,71 +36,48 @@ void funScroll(GLFWwindow *window, double xoffset, double yoffset);
 void funCursorPos(GLFWwindow *window, double xpos, double ypos);
 bool checkColisionCajas(float x, float z);
 
-// =========================================================================
-// 1. CONFIGURACIÓN Y CONSTANTES DEL MUNDO
-// =========================================================================
-
-// Dimensiones de Ventana
+// --- CONFIGURACIÓN Y MUNDO ---
 int w = 500;
 int h = 500;
 
-// Constantes Físicas del Escenario
 const float SUELO_Y        = -2.0f;
 const float TECHO_Y        = 22.0f;
 const float ALTO_PARED     = 24.0f;
 const float ANCHO_PASILLO  = 20.5f;
 
-// Configuración de Luces (Límites de Arrays)
-#define NLD 1   // Luces Direccionales (Sol)
-#define NLP 45  // Luces Posicionales (Lámparas, efectos)
-#define NLF 5   // Luces Focales (Linternas, Ojos)
+#define NLD 1   // Luces Direccionales
+#define NLP 45  // Luces Posicionales
+#define NLF 5   // Luces Focales
 
-// =========================================================================
-// 2. SISTEMAS Y SHADERS
-// =========================================================================
 Shaders shaders;
 
-// =========================================================================
-// 3. CÁMARA (CONTROL Y ESTADO)
-// =========================================================================
-// Configuración
+// --- CÁMARA Y CONTROL ---
 float fovy          = 60.0f;
 float sensitivity   = 0.5f;
 bool  firstClick    = true;
-bool  modoF5        = false; // false = 1ra persona, true = 3ra persona
+bool  modoF5        = false;
 
-// Estado del Ratón
 double lastX = 0.0;
 double lastY = 0.0;
 
-// Vectores y Orientación (Cámara Libre)
 float alphaX = -90.0f;
 float alphaY = 0.0f;
 glm::vec3 cameraPos   = glm::vec3(0.0f, 2.0f, 15.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
 
-// =========================================================================
-// 4. LUCES Y MATERIALES BASE
-// =========================================================================
-Light lightG;           // Global
-Light lightD[NLD];      // Direccionales
-Light lightP[NLP];      // Posicionales
-Light lightF[NLF];      // Focales
+// --- LUCES Y MATERIALES ---
+Light lightG;
+Light lightD[NLD];
+Light lightP[NLP];
+Light lightF[NLF];
 
-Material mluz;  // Material emisivo puro (para representar las luces)
-Material mOjo;  // Material brillante para los ojos
-Material mNeon; // Material para neones
+Material mluz;
+Material mOjo;
+Material mNeon;
 
-// =========================================================================
-// 5. RECURSOS: MODELOS 3D (.OBJ)
-// =========================================================================
-// Primitivas y Props
-Model sphere;
-Model plane;
-Model cube;
-Model signal;
-Model contenedor;
+// --- MODELOS 3D ---
+Model sphere, plane, cube, signal, contenedor;
 
 // Jerarquía Robot M-O
 Model aspiradora, cuerpo, cabeza, rueda;
@@ -111,62 +88,43 @@ Model cubreRueda, mochila;
 Model ejeBrazoDerecho, ejeBrazoIzquierdo;
 Model tapaAspiradora, tapaCasco;
 
-// =========================================================================
-// 6. RECURSOS: TEXTURAS (RAW IMAGES)
-// =========================================================================
-// Materiales Genéricos
-Texture imgNoEmissive;
-Texture imgWhiteMetal, imgGreyMetal, imgBlackMetal;
-Texture imgBlackRubber;
-Texture imgBlueGlass, imgRedGlass;
-Texture imgRuby;
-
-// Escenario (PBR)
+// --- TEXTURAS Y SETS ---
+Texture imgNoEmissive, imgWhiteMetal, imgGreyMetal, imgBlackMetal, imgBlackRubber, imgBlueGlass, imgRedGlass, imgRuby;
 Texture imgAxiomFloor, imgFloorNormal, imgFloorSpec;
 Texture imgAxiomWall_Albedo, imgAxiomWall_Normal, imgAxiomWall_Roughness;
 Texture imgCeiling_Color, imgCeiling_Normal, imgCeiling_Roughness, imgCeiling_AO;
 Texture imgOrganic_Albedo, imgOrganic_Normal, imgOrganic_Roughness;
 Texture imgCont_Diff, imgCont_Norm, imgCont_Metal, imgCont_Emis;
-
-// Props
 Texture signal_BaseColor, signal_Roughness, signal_Metallic, signal_Normal, signal_AO;
 
-// =========================================================================
-// 7. TEXTURAS COMPUESTAS (SETS PARA SHADER)
-// =========================================================================
 Textures texAxiomFloor, texAxiomWall, texZocaloLed, texRuby, texCeiling, texOrganicWall;
 Textures texWhiteMetal, texGreyMetal, texBlackMetal, texBlackRubber, texBlueGlass, texRedGlass;
-Textures texSignal;
-Textures texContenedor;
+Textures texSignal, texContenedor;
 
-// =========================================================================
-// 8. ESTADO DEL JUEGO Y ANIMACIONES (ROBOT)
-// =========================================================================
-// Posición y Orientación
+// --- ESTADO Y ANIMACIÓN ---
 float posX          = 0.0f;
 float posZ          = 0.0f;
-float anguloGiro    = 0.0f; // Orientación Y (yaw)
-float inclinacionX  = 0.0f; // Pitch dinámico al moverse
-float inclinacionZ  = 0.0f; // Roll dinámico al girar
+float anguloGiro    = 0.0f;
+float inclinacionX  = 0.0f;
+float inclinacionZ  = 0.0f;
 
-// Animaciones Internas
-float anguloRueda      = 0.0f;   // [CORREGIDO] Float en vez de Matriz acumulada
-float anguloAspiradora = 0.0f;   // Rotación del rodillo
-float anguloBrazos     = 0.0f;   // Elevación de brazos
-float anguloSirena     = 0.0f;   // Rotación luces sirena
-float alturaSirena     = -7.42f; // Eje Y local sirena
+float anguloRueda      = 0.0f;
+float anguloAspiradora = 0.0f;
+float anguloBrazos     = 0.0f;
+float anguloSirena     = 0.0f;
+float alturaSirena     = -7.42f;
 
-// Flags de Control (Inputs)
-bool animacionActiva = false; // "G" key
-bool sirenaLevantada = false; // "Y" key
+// Control de Inputs
+bool animacionActiva = false;
+bool sirenaLevantada = false;
 bool giroIzq = false, giroDer = false;
 bool movW = false, movS = false, movA = false, movD = false;
 
-//Luz focal movible
+// Luz focal interactiva
 float focalPosX = 0.0f;
 float focalPosY = 5.0f;
 float focalPosZ = 10.0f;
-bool botonDerecho = false;
+bool  botonDerecho = false;
 
 int main()
 {
@@ -184,7 +142,7 @@ int main()
    w = mode->width;
    h = mode->height;
 
-   GLFWwindow* window = glfwCreateWindow(w, h, "Sesion 7 - Maximizada", NULL, NULL);
+   GLFWwindow* window = glfwCreateWindow(w, h, "Práctica IG", NULL, NULL);
    // Forzamos a que la ventana se maximice inmediatamente
    glfwMaximizeWindow(window);
    if (!window)
@@ -229,296 +187,213 @@ int main()
 
 void configScene()
 {
-   // ==========================================
-   // 1. AJUSTES GLOBALES
-   // ==========================================
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
    shaders.initShaders("resources/shaders/vshader.glsl", "resources/shaders/fshader.glsl");
 
-   // ==========================================
-   // 2. MODELOS (.OBJ)
-   // ==========================================
-   // Escenario
-   sphere.initModel( "resources/models/sphere.obj");
-   plane.initModel(  "resources/models/plane.obj");
-   cube.initModel(   "resources/models/cube.obj");
-   signal.initModel( "resources/models/Sign.obj");
+   // --- MODELOS ---
+   sphere.initModel("resources/models/sphere.obj");
+   plane.initModel("resources/models/plane.obj");
+   cube.initModel("resources/models/cube.obj");
+   signal.initModel("resources/models/Sign.obj");
    contenedor.initModel("resources/models/Container Free.obj");
 
-   // Robot (M-O)
-   aspiradora.initModel(       "resources/models/aspiradora.obj");
-   brazoDerecho.initModel(     "resources/models/brazoDerecho.obj");
-   brazoIzquierdo.initModel(   "resources/models/brazoIzquierdo.obj");
-   cara.initModel(             "resources/models/cara.obj");
-   casco.initModel(            "resources/models/casco.obj");
-   cristalSirena.initModel(    "resources/models/cristalSirena.obj");
-   cubreRueda.initModel(       "resources/models/cubreRueda.obj");
-   cuello.initModel(           "resources/models/cuello.obj");
-   cuerpo.initModel(           "resources/models/cuerpo.obj");
-   ejeBrazoDerecho.initModel(  "resources/models/ejeBrazoDerecho.obj");
+   aspiradora.initModel("resources/models/aspiradora.obj");
+   brazoDerecho.initModel("resources/models/brazoDerecho.obj");
+   brazoIzquierdo.initModel("resources/models/brazoIzquierdo.obj");
+   cara.initModel("resources/models/cara.obj");
+   casco.initModel("resources/models/casco.obj");
+   cristalSirena.initModel("resources/models/cristalSirena.obj");
+   cubreRueda.initModel("resources/models/cubreRueda.obj");
+   cuello.initModel("resources/models/cuello.obj");
+   cuerpo.initModel("resources/models/cuerpo.obj");
+   ejeBrazoDerecho.initModel("resources/models/ejeBrazoDerecho.obj");
    ejeBrazoIzquierdo.initModel("resources/models/ejeBrazoIzquierdo.obj");
-   mochila.initModel(          "resources/models/mochila.obj");
-   rueda.initModel(            "resources/models/rueda.obj");
-   tapaAspiradora.initModel(   "resources/models/tapaAspiradora.obj");
-   tapaCasco.initModel(        "resources/models/tapaCasco.obj");
-   tapaSirena.initModel(       "resources/models/tapaSirena.obj");
+   mochila.initModel("resources/models/mochila.obj");
+   rueda.initModel("resources/models/rueda.obj");
+   tapaAspiradora.initModel("resources/models/tapaAspiradora.obj");
+   tapaCasco.initModel("resources/models/tapaCasco.obj");
+   tapaSirena.initModel("resources/models/tapaSirena.obj");
 
-   // ==========================================
-   // 3. TEXTURAS (Carga de imágenes)
-   // ==========================================
-   // Materiales Generales
-   imgNoEmissive.initTexture(  "resources/textures/imgNoEmissive.png");
-   imgRuby.initTexture(        "resources/textures/imgRuby.png");
-   imgWhiteMetal.initTexture(  "resources/textures/whiteMetal.jpg");
-   imgGreyMetal.initTexture(   "resources/textures/greyMetal.jpg");
-   imgBlackMetal.initTexture(  "resources/textures/blackMetal.jpg");
-   imgBlackRubber.initTexture( "resources/textures/blackRubber.jpg");
-   imgBlueGlass.initTexture(   "resources/textures/blueGlass.png");
-   imgRedGlass.initTexture(    "resources/textures/redGlass.png");
+   // --- TEXTURAS ---
+   imgNoEmissive.initTexture("resources/textures/imgNoEmissive.png");
+   imgRuby.initTexture("resources/textures/imgRuby.png");
+   imgWhiteMetal.initTexture("resources/textures/whiteMetal.jpg");
+   imgGreyMetal.initTexture("resources/textures/greyMetal.jpg");
+   imgBlackMetal.initTexture("resources/textures/blackMetal.jpg");
+   imgBlackRubber.initTexture("resources/textures/blackRubber.jpg");
+   imgBlueGlass.initTexture("resources/textures/blueGlass.png");
+   imgRedGlass.initTexture("resources/textures/redGlass.png");
 
-   // Texturas Escenario (Axiom)
-   imgAxiomFloor.initTexture(       "resources/textures/Scifi_Hex_Wall_Difusse.jpg");
-   imgFloorNormal.initTexture(      "resources/textures/Scifi_Hex_Wall_normal.jpg");
-   imgFloorSpec.initTexture(        "resources/textures/Scifi_Hex_Wall_specular.jpg");
+   imgAxiomFloor.initTexture("resources/textures/Scifi_Hex_Wall_Difusse.jpg");
+   imgFloorNormal.initTexture("resources/textures/Scifi_Hex_Wall_normal.jpg");
+   imgFloorSpec.initTexture("resources/textures/Scifi_Hex_Wall_specular.jpg");
 
-   imgAxiomWall_Albedo.initTexture(    "resources/textures/scifi_panel_1_color_1k.png");
-   imgAxiomWall_Normal.initTexture(    "resources/textures/scifi_panel_1_normal_1k.png");
-   imgAxiomWall_Roughness.initTexture( "resources/textures/scifi_panel_1_metallic_1k.png"); // Metallic/Roughness
+   imgAxiomWall_Albedo.initTexture("resources/textures/scifi_panel_1_color_1k.png");
+   imgAxiomWall_Normal.initTexture("resources/textures/scifi_panel_1_normal_1k.png");
+   imgAxiomWall_Roughness.initTexture("resources/textures/scifi_panel_1_metallic_1k.png");
 
-   imgCeiling_Color.initTexture(       "resources/textures/floor_tile_1_color.png");
-   imgCeiling_Normal.initTexture(      "resources/textures/floor_tile_1_normal.png");
-   imgCeiling_Roughness.initTexture(   "resources/textures/floor_tile_1_roughness.png");
+   imgCeiling_Color.initTexture("resources/textures/floor_tile_1_color.png");
+   imgCeiling_Normal.initTexture("resources/textures/floor_tile_1_normal.png");
+   imgCeiling_Roughness.initTexture("resources/textures/floor_tile_1_roughness.png");
 
-   imgOrganic_Albedo.initTexture(      "resources/textures/organic_tech_1_color_1k.png");
-   imgOrganic_Normal.initTexture(      "resources/textures/organic_tech_1_normal_1k.png");
-   imgOrganic_Roughness.initTexture(   "resources/textures/organic_tech_1_roughness_1k.png");
+   imgOrganic_Albedo.initTexture("resources/textures/organic_tech_1_color_1k.png");
+   imgOrganic_Normal.initTexture("resources/textures/organic_tech_1_normal_1k.png");
+   imgOrganic_Roughness.initTexture("resources/textures/organic_tech_1_roughness_1k.png");
 
-   signal_BaseColor.initTexture(       "resources/textures/sign_basecolor.png");
-   signal_Roughness.initTexture(       "resources/textures/sign_roughness.png");
-   signal_Normal.initTexture(          "resources/textures/sign_normal.png");
+   signal_BaseColor.initTexture("resources/textures/sign_basecolor.png");
+   signal_Roughness.initTexture("resources/textures/sign_roughness.png");
+   signal_Normal.initTexture("resources/textures/sign_normal.png");
 
    imgCont_Diff.initTexture("resources/textures/Container Free_BaseColor.png");
    imgCont_Norm.initTexture("resources/textures/Container Free_Normal_OpenGL.png");
    imgCont_Metal.initTexture("resources/textures/Container Free_Metallic.png");
    imgCont_Emis.initTexture("resources/textures/TContainer Free_Emissive.png");
 
-   // ==========================================
-   // 4. CONFIGURACIÓN DE MATERIALES
-   // ==========================================
+   // --- CONFIGURACIÓN DE MATERIALES ---
+   texZocaloLed.diffuse = texZocaloLed.specular = texZocaloLed.emissive = imgWhiteMetal.getTexture();
+   texZocaloLed.normal = 0; texZocaloLed.shininess = 23.0f;
 
-   // Zocalo Led
-   texZocaloLed.diffuse   = imgWhiteMetal.getTexture();
-   texZocaloLed.specular  = imgWhiteMetal.getTexture();
-   texZocaloLed.emissive  = imgWhiteMetal.getTexture();
-   texZocaloLed.normal    = 0;
-   texZocaloLed.shininess = 23.0f;
+   texAxiomWall.diffuse = imgAxiomWall_Albedo.getTexture();
+   texAxiomWall.specular = imgAxiomWall_Roughness.getTexture();
+   texAxiomWall.emissive = imgNoEmissive.getTexture();
+   texAxiomWall.normal = imgAxiomWall_Normal.getTexture();
+   texAxiomWall.shininess = 50.0f;
 
-   // Pared Axiom (Unificado)
-   texAxiomWall.diffuse   = imgAxiomWall_Albedo.getTexture();
-   texAxiomWall.specular  = imgAxiomWall_Roughness.getTexture();
-   texAxiomWall.emissive  = imgNoEmissive.getTexture();
-   texAxiomWall.normal    = imgAxiomWall_Normal.getTexture();
-   texAxiomWall.shininess = 50.0f; // Valor final ajustado
+   texWhiteMetal.diffuse = texWhiteMetal.specular = imgWhiteMetal.getTexture();
+   texWhiteMetal.emissive = imgNoEmissive.getTexture();
+   texWhiteMetal.normal = 0; texWhiteMetal.shininess = 64.0f;
 
-   // Metales y Gomas
-   texWhiteMetal.diffuse   = imgWhiteMetal.getTexture();
-   texWhiteMetal.specular  = imgWhiteMetal.getTexture();
-   texWhiteMetal.emissive  = imgNoEmissive.getTexture();
-   texWhiteMetal.normal    = 0;
-   texWhiteMetal.shininess = 64.0f;
+   texGreyMetal.diffuse = texGreyMetal.specular = imgGreyMetal.getTexture();
+   texGreyMetal.emissive = imgNoEmissive.getTexture();
+   texGreyMetal.normal = 0; texGreyMetal.shininess = 100.0f;
 
-   texGreyMetal.diffuse    = imgGreyMetal.getTexture();
-   texGreyMetal.specular   = imgGreyMetal.getTexture();
-   texGreyMetal.emissive   = imgNoEmissive.getTexture();
-   texGreyMetal.normal     = 0;
-   texGreyMetal.shininess  = 100.0f;
+   texBlackMetal.diffuse = texBlackMetal.specular = imgBlackMetal.getTexture();
+   texBlackMetal.emissive = imgNoEmissive.getTexture();
+   texBlackMetal.normal = 0; texBlackMetal.shininess = 32.0f;
 
-   texBlackMetal.diffuse   = imgBlackMetal.getTexture();
-   texBlackMetal.specular  = imgBlackMetal.getTexture();
-   texBlackMetal.emissive  = imgNoEmissive.getTexture();
-   texBlackMetal.normal    = 0;
-   texBlackMetal.shininess = 32.0f;
+   texBlackRubber.diffuse = texBlackRubber.specular = imgBlackRubber.getTexture();
+   texBlackRubber.emissive = imgNoEmissive.getTexture();
+   texBlackRubber.normal = 0; texBlackRubber.shininess = 10.0f;
 
-   texBlackRubber.diffuse   = imgBlackRubber.getTexture();
-   texBlackRubber.specular  = imgBlackRubber.getTexture();
-   texBlackRubber.emissive  = imgNoEmissive.getTexture();
-   texBlackRubber.normal    = 0;
-   texBlackRubber.shininess = 10.0f;
+   texBlueGlass.diffuse = texBlueGlass.specular = texBlueGlass.emissive = imgBlueGlass.getTexture();
+   texBlueGlass.normal = 0; texBlueGlass.shininess = 128.0f;
 
-   // Cristales
-   texBlueGlass.diffuse   = imgBlueGlass.getTexture();
-   texBlueGlass.specular  = imgBlueGlass.getTexture();
-   texBlueGlass.emissive  = imgBlueGlass.getTexture();
-   texBlueGlass.normal    = 0;
-   texBlueGlass.shininess = 128.0f;
+   texRedGlass.diffuse = texRedGlass.specular = texRedGlass.emissive = imgRedGlass.getTexture();
+   texRedGlass.normal = 0; texRedGlass.shininess = 128.0f;
 
-   texRedGlass.diffuse    = imgRedGlass.getTexture();
-   texRedGlass.specular   = imgRedGlass.getTexture();
-   texRedGlass.emissive   = imgRedGlass.getTexture();
-   texRedGlass.normal     = 0;
-   texRedGlass.shininess  = 128.0f;
-
-   // Suelos y Techos
-   texAxiomFloor.diffuse   = imgAxiomFloor.getTexture();
-   texAxiomFloor.specular  = imgFloorSpec.getTexture();
-   texAxiomFloor.emissive  = imgNoEmissive.getTexture();
-   texAxiomFloor.normal    = imgFloorNormal.getTexture();
+   texAxiomFloor.diffuse = imgAxiomFloor.getTexture();
+   texAxiomFloor.specular = imgFloorSpec.getTexture();
+   texAxiomFloor.emissive = imgNoEmissive.getTexture();
+   texAxiomFloor.normal = imgFloorNormal.getTexture();
    texAxiomFloor.shininess = 32.0f;
 
-   texCeiling.diffuse   = imgCeiling_Color.getTexture();
-   texCeiling.specular  = imgCeiling_Roughness.getTexture();
-   texCeiling.emissive  = imgNoEmissive.getTexture();
-   texCeiling.normal    = imgCeiling_Normal.getTexture();
+   texCeiling.diffuse = imgCeiling_Color.getTexture();
+   texCeiling.specular = imgCeiling_Roughness.getTexture();
+   texCeiling.emissive = imgNoEmissive.getTexture();
+   texCeiling.normal = imgCeiling_Normal.getTexture();
    texCeiling.shininess = 30.0f;
 
-   texOrganicWall.diffuse   = imgOrganic_Albedo.getTexture();
-   texOrganicWall.specular  = imgOrganic_Roughness.getTexture();
-   texOrganicWall.emissive  = imgNoEmissive.getTexture();
-   texOrganicWall.normal    = imgOrganic_Normal.getTexture();
+   texOrganicWall.diffuse = imgOrganic_Albedo.getTexture();
+   texOrganicWall.specular = imgOrganic_Roughness.getTexture();
+   texOrganicWall.emissive = imgNoEmissive.getTexture();
+   texOrganicWall.normal = imgOrganic_Normal.getTexture();
    texOrganicWall.shininess = 64.0f;
 
-   texContenedor.diffuse   = imgCont_Diff.getTexture();
-   texContenedor.specular  = imgCont_Metal.getTexture();
-   texContenedor.normal    = imgCont_Norm.getTexture();
-   texContenedor.emissive  = imgCont_Emis.getTexture();
+   texContenedor.diffuse = imgCont_Diff.getTexture();
+   texContenedor.specular = imgCont_Metal.getTexture();
+   texContenedor.normal = imgCont_Norm.getTexture();
+   texContenedor.emissive = imgCont_Emis.getTexture();
    texContenedor.shininess = 32.0f;
 
-   // Otros
-   texRuby.diffuse   = imgRuby.getTexture();
-   texRuby.specular  = imgRuby.getTexture();
-   texRuby.emissive  = imgNoEmissive.getTexture();
-   texRuby.normal    = 0;
-   texRuby.shininess = 128.0f;
+   texRuby.diffuse = texRuby.specular = imgRuby.getTexture();
+   texRuby.emissive = imgNoEmissive.getTexture();
+   texRuby.normal = 0; texRuby.shininess = 128.0f;
 
-   texSignal.diffuse   = signal_BaseColor.getTexture();
-   texSignal.specular  = signal_Roughness.getTexture();
-   texSignal.normal    = signal_Normal.getTexture();
+   texSignal.diffuse = signal_BaseColor.getTexture();
+   texSignal.specular = signal_Roughness.getTexture();
+   texSignal.normal = signal_Normal.getTexture();
    texSignal.shininess = 10.0f;
 
-   // Materiales sin texturas (Props)
-   mluz.ambient   = glm::vec4(0.0f);
-   mluz.diffuse   = glm::vec4(0.0f);
-   mluz.specular  = glm::vec4(0.0f);
-   mluz.emissive  = glm::vec4(1.0f);
-   mluz.shininess = 1.0f;
+   // Materiales puros
+   mluz.emissive = glm::vec4(1.0f); mluz.shininess = 1.0f;
+   mOjo.ambient = glm::vec4(0.2, 0.2, 0.0, 1.0); mOjo.diffuse = glm::vec4(0.9, 0.8, 0.2, 1.0);
+   mOjo.emissive = glm::vec4(0.8, 0.7, 0.1, 1.0); mOjo.shininess = 0.75f;
+   mNeon.specular = glm::vec4(1.0f); mNeon.emissive = glm::vec4(0.0, 0.9, 1.0, 1.0); mNeon.shininess = 128.0f;
 
-   mOjo.ambient   = glm::vec4(0.2, 0.2, 0.0, 1.0);
-   mOjo.diffuse   = glm::vec4(0.9, 0.8, 0.2, 1.0);
-   mOjo.specular  = glm::vec4(0.0f);
-   mOjo.emissive  = glm::vec4(0.8, 0.7, 0.1, 1.0);
-   mOjo.shininess = 0.75f;
-
-   mNeon.ambient   = glm::vec4(0.0f);
-   mNeon.diffuse   = glm::vec4(0.0f);
-   mNeon.specular  = glm::vec4(1.0f);
-   mNeon.emissive  = glm::vec4(0.0, 0.9, 1.0, 1.0);
-   mNeon.shininess = 128.0f;
-
-   // ==========================================
-   // 5. CONFIGURACIÓN DE LUCES
-   // ==========================================
-
-   // --- Global ---
+   // --- CONFIGURACIÓN DE LUCES ---
    lightG.ambient = glm::vec3(0.2, 0.2, 0.3);
 
-   // --- Direccional ---
    lightD[0].direction = glm::vec3(0.0, -1.0, 0.0);
-   lightD[0].ambient   = glm::vec3(0.1f); // Usamos constructor corto si r=g=b
-   lightD[0].diffuse   = glm::vec3(0.7f);
-   lightD[0].specular  = glm::vec3(0.7f);
+   lightD[0].ambient = glm::vec3(0.1f);
+   lightD[0].diffuse = lightD[0].specular = glm::vec3(0.7f);
 
-   // --- Posicionales ---
-   // P[0]: Principal
    lightP[0].position = glm::vec3(0.0, 22.0, 0.0);
-   lightP[0].ambient  = glm::vec3(0.2f);
-   lightP[0].diffuse  = glm::vec3(0.9, 0.95, 1.0);
+   lightP[0].ambient = glm::vec3(0.2f);
+   lightP[0].diffuse = glm::vec3(0.9, 0.95, 1.0);
    lightP[0].specular = glm::vec3(1.0f);
    lightP[0].c0 = 1.00f; lightP[0].c1 = 0.09f; lightP[0].c2 = 0.032f;
 
-   // Resto de posicionales (loops)
    for(int i = 1; i < NLP; i++) {
-      lightP[i].ambient  = glm::vec3(0.0f);
-      lightP[i].diffuse  = glm::vec3(0.0, 0.8, 1.0);
-      lightP[i].specular = glm::vec3(0.0f);
+      lightP[i].diffuse = glm::vec3(0.0, 0.8, 1.0);
       lightP[i].c0 = 1.0f; lightP[i].c1 = 0.5f; lightP[i].c2 = 0.8f;
    }
 
-   // --- Focales (Spotlights) ---
-   // Ojos
+   // Focales (Ojos y Sirena)
    for(int i = 0; i <= 1; i++){
-       lightF[i].ambient     = glm::vec3(0.0f);
-       lightF[i].diffuse     = glm::vec3(0.8, 0.7, 0.2);
-       lightF[i].specular    = glm::vec3(0.8, 0.7, 0.2);
-       lightF[i].innerCutOff = 15.0f;
-       lightF[i].outerCutOff = 25.0f;
+       lightF[i].diffuse = lightF[i].specular = glm::vec3(0.8, 0.7, 0.2);
+       lightF[i].innerCutOff = 15.0f; lightF[i].outerCutOff = 25.0f;
        lightF[i].c0 = 1.0f; lightF[i].c1 = 0.09f; lightF[i].c2 = 0.032f;
    }
 
-   // Sirena
    for(int i = 2; i <= 3; i++){
-       lightF[i].ambient     = glm::vec3(0.0f);
-       lightF[i].diffuse     = glm::vec3(0.9f);
-       lightF[i].specular    = glm::vec3(0.9f);
-       lightF[i].innerCutOff = 20.0f;
-       lightF[i].outerCutOff = 30.0f;
+       lightF[i].diffuse = lightF[i].specular = glm::vec3(0.9f);
+       lightF[i].innerCutOff = 20.0f; lightF[i].outerCutOff = 30.0f;
        lightF[i].c0 = 1.0f; lightF[i].c1 = 0.09f; lightF[i].c2 = 0.032f;
    }
 
-   lightF[4].ambient     = glm::vec3(0.1f, 0.0f, 0.0f);
-   lightF[4].diffuse     = glm::vec3(1.0f, 0.0f, 0.0f); // Roja
-   lightF[4].specular    = glm::vec3(1.0f, 0.0f, 0.0f);
-   lightF[4].innerCutOff = 10.0f;
-   lightF[4].outerCutOff = 20.0f;
+   lightF[4].ambient = glm::vec3(0.1f, 0.0f, 0.0f);
+   lightF[4].diffuse = lightF[4].specular = glm::vec3(1.0f, 0.0f, 0.0f);
+   lightF[4].innerCutOff = 10.0f; lightF[4].outerCutOff = 20.0f;
    lightF[4].c0 = 1.0f; lightF[4].c1 = 0.09f; lightF[4].c2 = 0.032f;
    lightF[4].direction = glm::vec3(0.0f, -1.0f, -1.0f);
 }
 
 void renderScene()
 {
-   // ==========================================
-   // 1. LÓGICA Y ANIMACIÓN (Cálculos previos)
-   // ==========================================
+   // --- LÓGICA Y ANIMACIÓN ---
    if (animacionActiva) {
       anguloAspiradora += 5.0f;
       if (anguloAspiradora > 360.0f) anguloAspiradora -= 360.0f;
    }
 
-   // Actualizamos posiciones y movimientos
    levantarSirena();
    movimientoMO();
    animacionHyperScanner();
    animacionDiagonalParedes();
 
-   // Input de giro
    if (giroIzq) anguloGiro += 2.0f;
    if (giroDer) anguloGiro -= 2.0f;
 
-   // ==========================================
-   // 2. CONFIGURACIÓN BÁSICA (Clear & Shaders)
-   // ==========================================
+   // --- CONFIGURACIÓN RENDER ---
    glClearColor(0.0, 0.0, 0.0, 0.0);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    shaders.useShaders();
 
-   // Luz focal movible
    lightF[4].position = glm::vec3(focalPosX, focalPosY, focalPosZ);
    lightF[4].direction = glm::vec3(0.0f, -1.0f, 0.0f);
 
-   // ==========================================
-   // 3. CÁMARA (Matriz V) Y PERSPECTIVA (Matriz P)
-   // ==========================================
+   // --- CÁMARA Y PERSPECTIVA ---
    float aspect = (float)w / (float)h;
    glm::mat4 P = glm::perspective(glm::radians(fovy), aspect, 0.1f, 400.0f);
    glm::mat4 V;
 
    if (modoF5) {
-      // --- Cámara 3ª Persona (Detrás del robot) ---
+      // Cámara 3ª Persona
       float dist = 12.5f;
       float rad = glm::radians(anguloGiro);
-
       glm::vec3 camPosF5;
       camPosF5.x = posX - (sin(rad) * dist);
       camPosF5.y = 5.0f;
@@ -528,7 +403,7 @@ void renderScene()
       shaders.setVec3("ueye", camPosF5);
    }
    else {
-      // --- Cámara 1ª Persona (Libre) ---
+      // Cámara 1ª Persona
       glm::vec3 front;
       front.x = cos(glm::radians(alphaX)) * cos(glm::radians(alphaY));
       front.y = sin(glm::radians(alphaY));
@@ -539,35 +414,22 @@ void renderScene()
       shaders.setVec3("ueye", cameraPos);
    }
 
-   // ==========================================
-   // 4. PREPARAR MATRICES DEL ROBOT
-   // ==========================================
-   // Calculamos la matriz completa del robot AQUÍ para no repetirla luego
+   // --- MATRICES Y LUCES DEL ROBOT ---
    glm::mat4 T_MO = glm::translate(I, glm::vec3(posX, -2.0, posZ));
    glm::mat4 R_MO = glm::rotate(I, glm::radians(anguloGiro), glm::vec3(0.0, 1.0, 0.0));
    glm::mat4 S_MO = glm::scale(I, glm::vec3(0.05, 0.05, 0.05));
+   glm::mat4 matrizMO = T_MO * R_MO * S_MO;
 
-   glm::mat4 matrizMO = T_MO * R_MO * S_MO; // Matriz final del robot
-
-   // ==========================================
-   // 5. LUCES
-   // ==========================================
-   // Importante: Calcular la luz de los ojos antes de enviar las luces
    luzOjos(matrizMO);
    setLights(P, V);
 
-   // ==========================================
-   // 6. DIBUJAR OBJETOS
-   // ==========================================
-
+   // --- DIBUJO ---
    glm::mat4 matLuzRoja = glm::translate(I, lightF[4].position) * glm::scale(I, glm::vec3(0.2f));
-   Material mRoja = mluz; 
+   Material mRoja = mluz;
    mRoja.emissive = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
    drawObjectMat(sphere, mRoja, P, V, matLuzRoja);
-
    drawEscenario(P, V);
-
    drawMO(P, V, matrizMO);
 }
 
@@ -621,11 +483,10 @@ void funFramebufferSize(GLFWwindow *window, int width, int height)
 
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-   float cameraSpeed = 1.0f; // Velocidad de movimiento de la cámara
+   float cameraSpeed = 1.0f; // Velocidad
 
    switch (key)
    {
-   // --- CONTROLES CÁMARA LIBRE (FLECHAS) ---
    case GLFW_KEY_UP:
       if (action == GLFW_PRESS || action == GLFW_REPEAT)
          cameraPos += cameraSpeed * cameraFront;
@@ -638,7 +499,6 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
 
    case GLFW_KEY_LEFT:
       if (action == GLFW_PRESS || action == GLFW_REPEAT)
-         // Producto cruz normalizado para moverse lateralmente (Strafe)
          cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
       break;
 
@@ -646,7 +506,6 @@ void funKey(GLFWwindow *window, int key, int scancode, int action, int mods)
       if (action == GLFW_PRESS || action == GLFW_REPEAT)
          cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
       break;
-   // -----------------------------------------
    case GLFW_KEY_C:
       if (action == GLFW_PRESS) modoF5 = !modoF5;
       break;
@@ -710,9 +569,7 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
 {
    bool lmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
    bool rmb = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-
-   // Detectar si SHIFT está presionado
-   bool shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || 
+   bool shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
                 glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
 
    if (!lmb && !rmb) {
@@ -727,35 +584,28 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
    }
 
    double xoffset = xpos - lastX;
-   double yoffset = lastY - ypos; 
+   double yoffset = lastY - ypos;
    lastX = xpos;
    lastY = ypos;
 
    if (lmb) {
-      // Cámara (tu lógica original)
       alphaX += xoffset * sensitivity;
       alphaY += yoffset * sensitivity;
-      float limY = 89.0f;
-      if (alphaY > limY) alphaY = limY;
-      if (alphaY < -limY) alphaY = -limY;
-   } 
+
+      if (alphaY >  89.0f) alphaY =  89.0f;
+      if (alphaY < -89.0f) alphaY = -89.0f;
+   }
    else if (rmb) {
-      float lightSensitivity = 0.05f;
-      
-      // El eje X siempre se mueve con el movimiento horizontal del ratón
-      focalPosX += xoffset * lightSensitivity;
+      float lightSens = 0.05f;
+      focalPosX += xoffset * lightSens;
 
       if (shift) {
-         // Si presionas SHIFT, el movimiento vertical del ratón mueve el eje Z
-         // Invertimos yoffset para que "hacia arriba" sea "hacia el fondo"
-         focalPosZ -= yoffset * lightSensitivity; 
+         focalPosZ -= yoffset * lightSens; // Movimiento en profundidad
       } else {
-         // Sin SHIFT, el movimiento vertical mueve el eje Y (altura)
-         focalPosY += yoffset * lightSensitivity;
+         focalPosY += yoffset * lightSens; // Movimiento en altura
       }
    }
 }
-
 void drawMO(glm::mat4 P, glm::mat4 V, glm::mat4 M)
 {
    glm::vec3 centro = glm::vec3(0.0f, 9.80f, -3.58f);
@@ -986,35 +836,22 @@ void movimientoMO()
 }
 
 bool checkColisionCajas(float x, float z) {
-   // ========================================================
-   // CAJA 1 (La pila doble en Z=20, rotada 65 grados)
-   // ========================================================
-   // Usamos un tamaño cuadrado estándar para esta
+   // Caja doble
    float size1 = 3.5f;
-
    if (x > (-8.0f - size1) && x < (-8.0f + size1) &&
        z > (20.0f - size1) && z < (20.0f + size1)) {
       return true;
        }
 
-   // ========================================================
-   // CAJA 2 (La suelta en Z=27, rotada 25 grados)
-   // ========================================================
-   // AQUI ES DONDE MODIFICAMOS EL ANCHO
-
-   // radioX: Aumenta esto para que sea más ancha (ocupe más pasillo a los lados)
-   float radioX = 6.0f;  // Antes era 3.5, ahora es mucho más ancha
-
-   // radioZ: Profundidad en el sentido del pasillo
+   // Caja
+   float radioX = 6.0f;
    float radioZ = 3.5f;
-
-   // Centro: (-8.5, 27.0)
    if (x > (-8.5f - radioX) && x < (-8.5f + radioX) &&
        z > (27.0f - radioZ) && z < (27.0f + radioZ)) {
       return true;
        }
 
-   return false; // No hay colisión
+   return false;
 }
 
 void luzOjos(glm::mat4 M){
@@ -1038,70 +875,44 @@ void luzOjos(glm::mat4 M){
 
 void animacionHyperScanner()
 {
-    float t = glfwGetTime();
+   float t = glfwGetTime();
+   float zLuz = -48.0f;
+   float amplitud = 19.0f;
+   int baseIndex = 1;
 
-    // --- CORRECCIÓN DE POSICIÓN ---
-    // Si tu pared del fondo la pusiste en Z = -26.0 (según corregimos antes),
-    // ponemos la luz en -24.0. (2 metros de distancia es seguro).
-    float zLuz = -48.0f;
+   // BARRA 1: CYAN (Movimiento Senoidal)
+   float xPos1 = sin(t * 1.5f) * amplitud;
 
-    // Límites de movimiento en X
-    float amplitud = 19.0f;
+   for(int i = 0; i < 5; i++) {
+      int idx = baseIndex + i;
+      float yPos = i * 5.0f;
 
-    // --- CORRECCIÓN DE ÍNDICES ---
-    // Usamos luces bajas (1 al 10) para evitar limites del shader.
-    // La luz 0 es la del techo/ambiente, esa no la tocamos.
-    int baseIndex = 1;
+      lightP[idx].position = glm::vec3(xPos1, yPos, zLuz);
+      lightP[idx].diffuse  = glm::vec3(0.0f, 2.0f, 5.0f);
+      lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+      lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    // ---------------------------------------------------------
-    // BARRA 1: CYAN (Izquierda -> Derecha)
-    // ---------------------------------------------------------
-    float xPos1 = sin(t * 1.5f) * amplitud;
+      lightP[idx].c0 = 1.0f;
+      lightP[idx].c1 = 0.1f;
+      lightP[idx].c2 = 0.2f;
+   }
 
-    for(int i = 0; i < 5; i++) {
-        int idx = baseIndex + i; // Luces 1, 2, 3, 4, 5
+   // BARRA 2: MAGENTA (Movimiento Cosinusoidal)
+   float xPos2 = cos(t * 2.2f) * amplitud;
 
-        // Estiramos más la barra verticalmente (de -2 a +10)
-        float yPos = 0.0f + (i * 5.0f);
+   for(int i = 0; i < 5; i++) {
+      int idx = baseIndex + 5 + i;
+      float yPos = 2.5f + (i * 5.0f);
 
-        lightP[idx].position = glm::vec3(xPos1, yPos, zLuz);
+      lightP[idx].position = glm::vec3(xPos2, yPos, zLuz);
+      lightP[idx].diffuse  = glm::vec3(5.0f, 0.0f, 4.0f);
+      lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
+      lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
 
-        // POTENCIA AUMENTADA (Valores > 1.0 hacen que brille más)
-        lightP[idx].diffuse  = glm::vec3(0.0f, 2.0f, 5.0f); // Cyan muy fuerte
-        lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
-        lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        // --- CORRECCIÓN DE ATENUACIÓN ---
-        // c2 bajo (0.1) = la luz llega muy lejos.
-        // c2 alto (4.0) = la luz muere enseguida.
-        // Lo bajamos a 0.2 para asegurar que se vea la mancha en la pared.
-        lightP[idx].c0 = 1.0f;
-        lightP[idx].c1 = 0.1f;
-        lightP[idx].c2 = 0.2f;
-    }
-
-    // ---------------------------------------------------------
-    // BARRA 2: MAGENTA (Derecha -> Izquierda)
-    // ---------------------------------------------------------
-    float xPos2 = cos(t * 2.2f) * amplitud;
-
-    for(int i = 0; i < 5; i++) {
-        int idx = baseIndex + 5 + i; // Luces 6, 7, 8, 9, 10
-
-       float yPos = 2.5f + (i * 5.0f);
-
-        lightP[idx].position = glm::vec3(xPos2, yPos, zLuz);
-
-        // Magenta Potente
-        lightP[idx].diffuse  = glm::vec3(5.0f, 0.0f, 4.0f);
-        lightP[idx].specular = glm::vec3(1.0f, 1.0f, 1.0f);
-        lightP[idx].ambient  = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        // Misma atenuación segura
-        lightP[idx].c0 = 1.0f;
-        lightP[idx].c1 = 0.1f;
-        lightP[idx].c2 = 0.2f;
-    }
+      lightP[idx].c0 = 1.0f;
+      lightP[idx].c1 = 0.1f;
+      lightP[idx].c2 = 0.2f;
+   }
 }
 
 void animacionDiagonalParedes()
