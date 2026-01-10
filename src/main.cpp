@@ -600,9 +600,9 @@ void funCursorPos(GLFWwindow *window, double xpos, double ypos)
       focalPosX += xoffset * lightSens;
 
       if (shift) {
-         focalPosZ -= yoffset * lightSens; // Movimiento en profundidad
+         focalPosZ -= yoffset * lightSens; // profundidad
       } else {
-         focalPosY += yoffset * lightSens; // Movimiento en altura
+         focalPosY += yoffset * lightSens; // altura
       }
    }
 }
@@ -777,19 +777,17 @@ void movimientoMO()
    float velocidadRot = 5.0f;
    float rad = glm::radians(anguloGiro);
 
-   // Variables para calcular a dónde QUEREMOS ir
    float deltaX = 0.0f;
    float deltaZ = 0.0f;
 
-   // Limites del escenario (Tus valores originales)
+   // Limites
    float minX = -17.3f; float maxX = 17.3f;
    float minZ = -52.3f; float maxZ = 42.3f;
 
-   // Inclinaciones visuales
+   // Inclinaciones
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
-   // 1. CALCULAR INTENCIÓN DE MOVIMIENTO (Delta)
    if (movW) {
       deltaX += sin(rad) * velocidadMov;
       deltaZ += cos(rad) * velocidadMov;
@@ -803,7 +801,6 @@ void movimientoMO()
       maxInclinacionX = -15.0f;
    }
    if (movA) {
-      // Strafe (Desplazamiento lateral)
       deltaX += cos(rad) * velocidadMov;
       deltaZ -= sin(rad) * velocidadMov;
       maxInclinacionZ = -15.0f;
@@ -814,21 +811,19 @@ void movimientoMO()
       maxInclinacionZ = 15.0f;
    }
 
-   // 2. APLICAR MOVIMIENTO CON COLISIÓN (Eje X)
+   // 2. COLISIÓN (Eje X)
    float nextX = posX + deltaX;
-   // Verificamos limites de pared Y colisión con cajas
    if (nextX > minX && nextX < maxX && !checkColisionCajas(nextX, posZ)) {
        posX = nextX;
    }
 
-   // 3. APLICAR MOVIMIENTO CON COLISIÓN (Eje Z)
+   // 3. COLISIÓN (Eje Z)
    float nextZ = posZ + deltaZ;
-   // Verificamos limites de pared Y colisión con cajas (usando la nueva X ya validada o la vieja)
    if (nextZ > minZ && nextZ < maxZ && !checkColisionCajas(posX, nextZ)) {
        posZ = nextZ;
    }
 
-   // 4. INCLINACIÓN (Efectos visuales)
+   // 4. INCLINACIÓN
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
@@ -837,7 +832,7 @@ void movimientoMO()
 
 bool checkColisionCajas(float x, float z) {
    // Caja doble
-   float size1 = 3.5f;
+   float size1 = 5.5f;
    if (x > (-8.0f - size1) && x < (-8.0f + size1) &&
        z > (20.0f - size1) && z < (20.0f + size1)) {
       return true;
@@ -928,7 +923,7 @@ void animacionDiagonalParedes()
     glm::vec3 cMedio = glm::vec3(0.5f, 0.0f, 1.0f);
     glm::vec3 cCaliente = glm::vec3(1.0f, 0.2f, 0.0f);
 
-    // --- GRUPO 1: PARED IZQUIERDA (Rayo Ascendente) ---
+    // PARED IZQUIERDA
     int lucesSerpiente = 15;
     int baseIdx = 11;
 
@@ -976,7 +971,7 @@ void animacionDiagonalParedes()
         lightP[idx].c1 = 0.1f;
     }
 
-    // --- GRUPO 2: PARED DERECHA (Lluvia Matrix) ---
+    // PARED DERECHA
     int baseIdxDer = 26;
     int lucesLluvia = 15;
 
