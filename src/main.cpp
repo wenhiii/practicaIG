@@ -171,8 +171,15 @@ int main()
    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
    // Creamos la ventana
-   GLFWwindow *window;
-   window = glfwCreateWindow(w, h, "Sesion 7", NULL, NULL);
+   GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+   const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+
+   w = mode->width;
+   h = mode->height;
+
+   GLFWwindow* window = glfwCreateWindow(w, h, "Sesion 7 - Maximizada", NULL, NULL);
+   // Forzamos a que la ventana se maximice inmediatamente
+   glfwMaximizeWindow(window);
    if (!window)
    {
       glfwTerminate();
