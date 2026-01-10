@@ -569,15 +569,6 @@ void renderScene()
    drawEscenario(P, V);
 
    drawMO(P, V, matrizMO);
-
-   float escala = 5.0f;
-
-   drawContenedorSciFi(P, V, glm::vec3(-8.0f, -2.0f, 20.0f), 65.0f, escala);
-   drawContenedorSciFi(P, V, glm::vec3(-8.0f, 1.4f, 20.0f), 65.0f, escala);
-   drawContenedorSciFi(P, V, glm::vec3(-8.5f, -2.0f, 27.0f), 25.0f, escala);
-   glm::mat4 matrizSenal = glm::translate(I, glm::vec3(0.0f, -2.0f, -2.0f))
-                         * glm::scale(I, glm::vec3(0.1f));
-   drawObjectTex(signal, texSignal, P, V, matrizSenal);
 }
 
 void setLights(glm::mat4 P, glm::mat4 V)
@@ -1357,16 +1348,26 @@ void drawEscenario(glm::mat4 P, glm::mat4 V)
    dibujarParedesFondo(P, V);
 
    // 3. Detalles extra (Zócalo central y mancha)
-   // Zócalo central
    glm::mat4 M_Linea = glm::translate(I, glm::vec3(0.0, SUELO_Y + 0.02f, -5.0))
                      * glm::scale(I, glm::vec3(0.3, 1.0, 50.0f));
    drawObjectTex(plane, texZocaloLed, P, V, M_Linea);
 
-   // Mancha en el suelo
    glm::mat4 M_Suciedad = glm::translate(I, glm::vec3(1.5, SUELO_Y + 0.05f, 2.0))
                         * glm::scale(I, glm::vec3(0.6, 1.0, 0.6));
    drawObjectTex(plane, texRuby, P, V, M_Suciedad);
 
+   // ==========================================
+   // 4. OBJETOS AGREGADOS (Cajas y Señal)
+   // ==========================================
+   float escala = 5.0f;
+
+   drawContenedorSciFi(P, V, glm::vec3(-8.0f, -2.0f, 20.0f), 65.0f, escala);
+   drawContenedorSciFi(P, V, glm::vec3(-8.0f, 1.4f, 20.0f), 65.0f, escala);
+   drawContenedorSciFi(P, V, glm::vec3(-8.5f, -2.0f, 27.0f), 25.0f, escala);
+
+   glm::mat4 matrizSenal = glm::translate(I, glm::vec3(0.0f, -2.0f, -2.0f))
+                         * glm::scale(I, glm::vec3(0.1f));
+   drawObjectTex(signal, texSignal, P, V, matrizSenal);
 }
 
 void drawContenedorSciFi(glm::mat4 P, glm::mat4 V, glm::vec3 pos, float rotY, float escala) {
