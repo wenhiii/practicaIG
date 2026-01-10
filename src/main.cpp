@@ -34,6 +34,7 @@ void funFramebufferSize(GLFWwindow *window, int width, int height);
 void funKey(GLFWwindow *window, int key, int scancode, int action, int mods);
 void funScroll(GLFWwindow *window, double xoffset, double yoffset);
 void funCursorPos(GLFWwindow *window, double xpos, double ypos);
+bool checkColisionCajas(float x, float z);
 
 // =========================================================================
 // 1. CONFIGURACIÓN Y CONSTANTES DEL MUNDO
@@ -934,56 +935,95 @@ void movimientoMO()
    float velocidadMov = 0.1f;
    float velocidadRot = 5.0f;
    float rad = glm::radians(anguloGiro);
+
+   // Variables para calcular a dónde QUEREMOS ir
+   float deltaX = 0.0f;
+   float deltaZ = 0.0f;
+
+   // Limites del escenario (Tus valores originales)
+   float minX = -17.3f; float maxX = 17.3f;
+   float minZ = -52.3f; float maxZ = 42.3f;
+
+   // Inclinaciones visuales
    float maxInclinacionX = 0.0f;
    float maxInclinacionZ = 0.0f;
 
-   float minX = -17.3f;
-   float maxX = 17.3f;
-
-   float minZ = -52.3f;
-   float maxZ = 42.3f;
-
-   // 1. CÁLCULO DE MOVIMIENTO
+   // 1. CALCULAR INTENCIÓN DE MOVIMIENTO (Delta)
    if (movW) {
-      posX += sin(rad) * velocidadMov;
-      posZ += cos(rad) * velocidadMov;
+      deltaX += sin(rad) * velocidadMov;
+      deltaZ += cos(rad) * velocidadMov;
       anguloRueda += velocidadRot;
-      if (animacionActiva) maxInclinacionX = 40.0f;
-      else maxInclinacionX = 15.0f;
+      maxInclinacionX = (animacionActiva) ? 40.0f : 15.0f;
    }
    if (movS) {
-      posX -= sin(rad) * velocidadMov;
-      posZ -= cos(rad) * velocidadMov;
+      deltaX -= sin(rad) * velocidadMov;
+      deltaZ -= cos(rad) * velocidadMov;
       anguloRueda -= velocidadRot;
       maxInclinacionX = -15.0f;
    }
    if (movA) {
-      posX += cos(rad) * velocidadMov;
-      posZ -= sin(rad) * velocidadMov;
+      // Strafe (Desplazamiento lateral)
+      deltaX += cos(rad) * velocidadMov;
+      deltaZ -= sin(rad) * velocidadMov;
       maxInclinacionZ = -15.0f;
    }
    if (movD) {
-      posX -= cos(rad) * velocidadMov;
-      posZ += sin(rad) * velocidadMov;
+      deltaX -= cos(rad) * velocidadMov;
+      deltaZ += sin(rad) * velocidadMov;
       maxInclinacionZ = 15.0f;
    }
 
-   // 2. RESTRICCIÓN DE LÍMITES (INTERVALOS DE DESPLAZAMIENTO)
-   // Ya no usamos -limiteX, ahora usamos tus variables min y max
+   // 2. APLICAR MOVIMIENTO CON COLISIÓN (Eje X)
+   float nextX = posX + deltaX;
+   // Verificamos limites de pared Y colisión con cajas
+   if (nextX > minX && nextX < maxX && !checkColisionCajas(nextX, posZ)) {
+       posX = nextX;
+   }
 
-   // EJE X
-   if (posX > maxX) posX = maxX; // Tope derecho (ej: 25)
-   if (posX < minX) posX = minX; // Tope izquierdo (ej: 5)
+   // 3. APLICAR MOVIMIENTO CON COLISIÓN (Eje Z)
+   float nextZ = posZ + deltaZ;
+   // Verificamos limites de pared Y colisión con cajas (usando la nueva X ya validada o la vieja)
+   if (nextZ > minZ && nextZ < maxZ && !checkColisionCajas(posX, nextZ)) {
+       posZ = nextZ;
+   }
 
-   // EJE Z
-   if (posZ > maxZ) posZ = maxZ;
-   if (posZ < minZ) posZ = minZ;
-
-   // 3. INCLINACIÓN (Igual que antes)
+   // 4. INCLINACIÓN (Efectos visuales)
    if (inclinacionX < maxInclinacionX) inclinacionX += 0.75f;
    if (inclinacionX > maxInclinacionX) inclinacionX -= 0.75f;
    if (inclinacionZ < maxInclinacionZ) inclinacionZ += 0.75f;
    if (inclinacionZ > maxInclinacionZ) inclinacionZ -= 0.75f;
+}
+
+bool checkColisionCajas(float x, float z) {
+   // ========================================================
+   // CAJA 1 (La pila doble en Z=20, rotada 65 grados)
+   // ========================================================
+   // Usamos un tamaño cuadrado estándar para esta
+   float size1 = 3.5f;
+
+   if (x > (-8.0f - size1) && x < (-8.0f + size1) &&
+       z > (20.0f - size1) && z < (20.0f + size1)) {
+      return true;
+       }
+
+   // ========================================================
+   // CAJA 2 (La suelta en Z=27, rotada 25 grados)
+   // ========================================================
+   // AQUI ES DONDE MODIFICAMOS EL ANCHO
+
+   // radioX: Aumenta esto para que sea más ancha (ocupe más pasillo a los lados)
+   float radioX = 6.0f;  // Antes era 3.5, ahora es mucho más ancha
+
+   // radioZ: Profundidad en el sentido del pasillo
+   float radioZ = 3.5f;
+
+   // Centro: (-8.5, 27.0)
+   if (x > (-8.5f - radioX) && x < (-8.5f + radioX) &&
+       z > (27.0f - radioZ) && z < (27.0f + radioZ)) {
+      return true;
+       }
+
+   return false; // No hay colisión
 }
 
 void luzOjos(glm::mat4 M){
