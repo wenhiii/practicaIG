@@ -373,6 +373,11 @@ void configScene()
 
 void renderScene()
 {
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDisable(GL_BLEND);
+   glEnable(GL_DEPTH_TEST);
+   glDepthMask(GL_TRUE);
+
    // --- LÓGICA Y ANIMACIÓN ---
    if (animacionActiva) {
       anguloAspiradora += 5.0f;
