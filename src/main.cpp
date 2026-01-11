@@ -78,6 +78,7 @@ Material mNeon;
 
 // --- MODELOS 3D ---
 Model sphere, plane, cube, signal, contenedor;
+Model officeWindow;
 
 // Jerarquía Robot M-O
 Model aspiradora, cuerpo, cabeza, rueda;
@@ -96,10 +97,12 @@ Texture imgCeiling_Color, imgCeiling_Normal, imgCeiling_Roughness, imgCeiling_AO
 Texture imgOrganic_Albedo, imgOrganic_Normal, imgOrganic_Roughness;
 Texture imgCont_Diff, imgCont_Norm, imgCont_Metal, imgCont_Emis;
 Texture signal_BaseColor, signal_Roughness, signal_Metallic, signal_Normal, signal_AO;
+Texture imgSpace;
 
 Textures texAxiomFloor, texAxiomWall, texZocaloLed, texRuby, texCeiling, texOrganicWall;
 Textures texWhiteMetal, texGreyMetal, texBlackMetal, texBlackRubber, texBlueGlass, texRedGlass;
 Textures texSignal, texContenedor;
+Textures texSpaceBackground;
 
 // --- ESTADO Y ANIMACIÓN ---
 float posX          = 0.0f;
@@ -252,6 +255,8 @@ void configScene()
    imgCont_Metal.initTexture("resources/textures/Container Free_Metallic.png");
    imgCont_Emis.initTexture("resources/textures/TContainer Free_Emissive.png");
 
+   imgSpace.initTexture("resources/textures/space.jpg");
+
    // --- CONFIGURACIÓN DE MATERIALES ---
    texZocaloLed.diffuse = texZocaloLed.specular = texZocaloLed.emissive = imgWhiteMetal.getTexture();
    texZocaloLed.normal = 0; texZocaloLed.shininess = 23.0f;
@@ -316,6 +321,11 @@ void configScene()
    texSignal.specular = signal_Roughness.getTexture();
    texSignal.normal = signal_Normal.getTexture();
    texSignal.shininess = 10.0f;
+
+   texSpaceBackground.diffuse = imgSpace.getTexture();
+   texSpaceBackground.emissive = imgSpace.getTexture();
+   texSpaceBackground.shininess = 1.0f;
+   texSpaceBackground.normal = 0;
 
    // Materiales puros
    mluz.emissive = glm::vec4(1.0f); mluz.shininess = 1.0f;
@@ -1086,19 +1096,58 @@ void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
    float anchoTotal = (ANCHO_PASILLO + 0.5f) * 2.0f;
    float escalaX = anchoTotal / 4.0f;
 
+   // =========================================================
+   // 1. DIBUJAR ELEMENTOS OPACOS (Muro y Universo)
+   // =========================================================
+   glDisable(GL_BLEND);
+   glDepthMask(GL_TRUE);
+
+   // A) Muros laterales (-Z)
    for(int k = -1; k <= 1; k += 2) {
       float xPos = k * (anchoTotal / 4.0f);
-
-      // Fondo (-Z)
-      glm::mat4 M_Fondo = glm::translate(I, glm::vec3(xPos, yCentro, -55.0f))
-                        * glm::scale(I, glm::vec3(escalaX, ALTO_PARED / 2.0f, 0.5f));
-      drawObjectTex(cube, texOrganicWall, P, V, M_Fondo);
-
-      // Frente (+Z)
-      glm::mat4 M_Frente = glm::translate(I, glm::vec3(xPos, yCentro, 45.0f))
-                         * glm::scale(I, glm::vec3(-escalaX, ALTO_PARED / 2.0f, -0.5f));
-      drawObjectTex(cube, texOrganicWall, P, V, M_Frente);
+      glm::mat4 M_Muro = glm::translate(I, glm::vec3(xPos, yCentro, -55.0f))
+                       * glm::scale(I, glm::vec3(escalaX, ALTO_PARED / 2.0f, 0.5f));
+      drawObjectTex(cube, texOrganicWall, P, V, M_Muro);
    }
+
+   // B) Fondo Universo Gigante (+Z)
+   glm::mat4 M_FondoEspacio = glm::translate(I, glm::vec3(0.0f, yCentro, 90.0f));
+   M_FondoEspacio = glm::rotate(M_FondoEspacio, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+   M_FondoEspacio = glm::scale(M_FondoEspacio, glm::vec3(anchoTotal * 2.0f, 1.0f, ALTO_PARED * 2.0f));
+   drawObjectTex(plane, texSpaceBackground, P, V, M_FondoEspacio);
+
+
+   // =========================================================
+   // 2. CRISTAL DE NAVE ESPACIAL (Azulado/Cian)
+   // =========================================================
+   glEnable(GL_BLEND);
+   glDepthMask(GL_FALSE);
+
+   // --- CONFIGURACIÓN ESTILO "COCKPIT" ---
+   // Opacidad baja para ver bien las estrellas
+   float opacidad = 0.02f;
+
+   // COLOR DEL TINTE:
+   // R=0.0, G=0.3, B=0.5 -> Un tono Cian/Azul oscuro tecnológico.
+   // El 4º valor es la opacidad.
+   glBlendColor(0.0f, 0.05f, 0.1f, opacidad);
+
+   // Mezclamos el color constante con la textura
+   glBlendFunc(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_ALPHA);
+
+   // C) Panel de Cristal (+Z)
+   glm::mat4 M_Cristal = glm::translate(I, glm::vec3(0.0f, yCentro, 45.0f));
+   M_Cristal = glm::rotate(M_Cristal, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+   M_Cristal = glm::scale(M_Cristal, glm::vec3(escalaX * 2.0f, 1.0f, ALTO_PARED / 2.0f));
+
+   // CAMBIO AQUÍ: Usamos texBlueGlass en vez de texRedGlass
+   drawObjectTex(plane, texBlueGlass, P, V, M_Cristal);
+
+
+   // Restaurar
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthMask(GL_TRUE);
+   glDisable(GL_BLEND);
 }
 
 void drawEscenario(glm::mat4 P, glm::mat4 V)
