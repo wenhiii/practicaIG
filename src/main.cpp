@@ -248,7 +248,7 @@ void configScene()
 
    signal_BaseColor.initTexture("resources/textures/sign_basecolor.png");
    signal_Roughness.initTexture("resources/textures/sign_roughness.png");
-   signal_Normal.initTexture("resources/textures/sign_normal.png");
+   signal_Normal.initTexture("resources/textures/sign_normal.jpg");
 
    imgCont_Diff.initTexture("resources/textures/Container Free_BaseColor.png");
    imgCont_Norm.initTexture("resources/textures/Container Free_Normal_OpenGL.png");
