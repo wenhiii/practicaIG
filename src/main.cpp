@@ -1096,9 +1096,6 @@ void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
    float anchoTotal = (ANCHO_PASILLO + 0.5f) * 2.0f;
    float escalaX = anchoTotal / 4.0f;
 
-   // =========================================================
-   // 1. DIBUJAR ELEMENTOS OPACOS (Muro y Universo)
-   // =========================================================
    glDisable(GL_BLEND);
    glDepthMask(GL_TRUE);
 
@@ -1116,33 +1113,19 @@ void dibujarParedesFondo(glm::mat4 P, glm::mat4 V) {
    M_FondoEspacio = glm::scale(M_FondoEspacio, glm::vec3(anchoTotal * 2.0f, 1.0f, ALTO_PARED * 2.0f));
    drawObjectTex(plane, texSpaceBackground, P, V, M_FondoEspacio);
 
-
-   // =========================================================
-   // 2. CRISTAL DE NAVE ESPACIAL (Azulado/Cian)
-   // =========================================================
+   // Cristal ventana
    glEnable(GL_BLEND);
    glDepthMask(GL_FALSE);
 
-   // --- CONFIGURACIÓN ESTILO "COCKPIT" ---
-   // Opacidad baja para ver bien las estrellas
    float opacidad = 0.02f;
-
-   // COLOR DEL TINTE:
-   // R=0.0, G=0.3, B=0.5 -> Un tono Cian/Azul oscuro tecnológico.
-   // El 4º valor es la opacidad.
    glBlendColor(0.0f, 0.05f, 0.1f, opacidad);
 
-   // Mezclamos el color constante con la textura
    glBlendFunc(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_ALPHA);
-
-   // C) Panel de Cristal (+Z)
    glm::mat4 M_Cristal = glm::translate(I, glm::vec3(0.0f, yCentro, 45.0f));
    M_Cristal = glm::rotate(M_Cristal, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
    M_Cristal = glm::scale(M_Cristal, glm::vec3(escalaX * 2.0f, 1.0f, ALTO_PARED / 2.0f));
 
-   // CAMBIO AQUÍ: Usamos texBlueGlass en vez de texRedGlass
    drawObjectTex(plane, texBlueGlass, P, V, M_Cristal);
-
 
    // Restaurar
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
